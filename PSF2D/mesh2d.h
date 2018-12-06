@@ -3,7 +3,8 @@
 #include "face2d.h"
 #include "edge2d.h"
 #include "vertex2d.h"
-#include <vector>
+#include <map>
+#include <set>
 #include <Eigen/Eigen>
 
 class Mesh2D
@@ -43,21 +44,20 @@ private:
     void voxelize(unsigned char* pixels);
     bool checkVoxel(unsigned char* offs);
 
-    void buildDual();
-
     bool* voxelMap;
 
     Eigen::Matrix<float,Eigen::Dynamic,Eigen::Dynamic> eigenValues;
     Eigen::Matrix<float,Eigen::Dynamic,Eigen::Dynamic> eigenVectors;
 
-
-    Mesh2D* dual;
 public:
     Eigen::VectorXf velocityField;
+    Eigen::SparseMatrix<float> b2;
+    Eigen::SparseMatrix<float> b1;
 
-    std::vector<Face2D> faces;
-    std::vector<Edge2D> edges;
-    std::vector<Vertex2D> vertex;
+    std::set<std::tuple<unsigned int,unsigned int,unsigned int>> faces;
+    std::set<std::tuple<unsigned int,unsigned int>> edges;
+    std::set<unsigned int> points;
+    std::map<unsigned int,Vertex2D> vertex;
 };
 
 #endif // MESH2D_H

@@ -9,20 +9,18 @@ class Face2D
 {
 public:
     Face2D();
-    Face2D(int e1,int e2,int e3,int e4);
-
-    float area;
+    Face2D(int v1,int v2,int v3,int v4);
 
     union
     {
         struct
         {
-            int e1;
-            int e2;
-            int e3;
-            int e4;
+            int v1;
+            int v2;
+            int v3;
+            int v4;
         };
-        int e[4];
+        int v[4];
     };
 };
 

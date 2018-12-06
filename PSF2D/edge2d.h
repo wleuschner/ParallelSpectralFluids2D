@@ -11,7 +11,6 @@ class Edge2D
 public:
     Edge2D();
     Edge2D(unsigned int v1,unsigned int v2);
-    float area;
 
     union
     {
@@ -22,8 +21,6 @@ public:
         };
         unsigned int v[2];
     };
-
-    int faces[2];
 };
 
 #endif // EDGE2D_H

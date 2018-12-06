@@ -11,11 +11,8 @@ class Vertex2D
 public:
     Vertex2D();
     Vertex2D(unsigned int x,unsigned int y);
-    float area;
 
     glm::vec2 pos;
-
-    int edges[4];
 };
 
 #endif // VERTEX2D_H

@@ -25,7 +25,7 @@ void FlowVisWidget::paintEvent(QPaintEvent *event)
     {
         for(unsigned int x=0;x<width/resX;x++)
         {
-            if(voxelMap[y*(width/resX)+x])
+/*            if(voxelMap[y*(width/resX)+x])
             {
                 QPen pen(Qt::black, 2, Qt::SolidLine);
                 painter.setPen(pen);
@@ -49,7 +49,7 @@ void FlowVisWidget::paintEvent(QPaintEvent *event)
                 pen.setColor(QColor(255*glm::length(dir),0,0));
                 painter.setPen(pen);
                 painter.drawLine(x*resX+0.5f*resX,y*resY+0.5f*resY,x*resX+0.5f*resX+dir.x*100,y*resY+0.5f*resY+dir.y*100);
-            }
+            }*/
         }
     }
 }

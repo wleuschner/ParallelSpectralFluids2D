@@ -48,7 +48,7 @@ void MainWindow::openFile()
         {
             delete mesh;
         }
-        mesh = new Mesh2D(originalImage.width(),originalImage.height(),32,32,originalImage.bits());
+        mesh = new Mesh2D(originalImage.width(),originalImage.height(),64,64,originalImage.bits());
 
 
         ui->tabImageView->setImage(originalImage);
