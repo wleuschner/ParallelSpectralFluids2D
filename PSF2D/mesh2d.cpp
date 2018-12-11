@@ -112,10 +112,10 @@ void Mesh2D::voxelize(unsigned char* pixels)
         for(int x=0;x<width/resX;x++)
         {
             unsigned char* start = &pixels[y*width*resY+x*resX];
-            iv1 = y*(width/resX)+x; //UP LEFT Vert
-            iv2 = y*(width/resX)+x+1; //UP RIGHT Vert
-            iv3 = (y+1)*(width/resX)+x; //DOWN LEFT vert
-            iv4 = (y+1)*(width/resX)+x+1; //DOWN RIGHT vert*/
+            iv1 = y*(width/resX)+x+y; //UP LEFT Vert
+            iv2 = y*(width/resX)+x+1+y; //UP RIGHT Vert
+            iv3 = (y+1)*(width/resX)+x+(y+1); //DOWN LEFT vert
+            iv4 = (y+1)*(width/resX)+x+1+(y+1); //DOWN RIGHT vert*/
 
             f = y*(width/resX)+x; //FACE
             if(checkVoxel(start))
@@ -130,12 +130,11 @@ void Mesh2D::voxelize(unsigned char* pixels)
                 v3.pos.y = (y+1)*resY;
                 v4.pos.x = (x+1)*resX;
                 v4.pos.y = (y+1)*resY;
-                vertex[iv1] = v1;
+                /*vertex[iv1] = v1;
                 vertex[iv2] = v2;
                 vertex[iv3] = v3;
-                vertex[iv4] = v4;
-                std::set<std::tuple<unsigned int,unsigned int,unsigned int>>::const_iterator itf1=faces.emplace(std::make_tuple(iv1,iv3,iv2)).first;
-                std::set<std::tuple<unsigned int,unsigned int,unsigned int>>::const_iterator itf2=faces.emplace(std::make_tuple(iv3,iv4,iv2)).first;
+                vertex[iv4] = v4;*/
+                std::set<std::tuple<unsigned int,unsigned int,unsigned int,unsigned int>>::const_iterator itf=faces.emplace(std::make_tuple(iv1,iv3,iv4,iv2)).first;
                 std::set<std::tuple<unsigned int,unsigned int>>::const_iterator it;
                 std::set<unsigned int>::const_iterator pit1,pit2;
 
@@ -183,91 +182,6 @@ void Mesh2D::voxelize(unsigned char* pixels)
                     }
                 }
 
-                if((it=edges.find(std::make_tuple(iv2,iv1)))!=edges.end())
-                {
-                    //b2.insert(std::distance(edges.begin(),it),std::distance(faces.begin(),itf)) = 1;
-                    pit1=points.find(iv2);
-                    pit2=points.find(iv1);
-                    //b1.insert(std::distance(points.begin(),pit1),std::distance(edges.begin(),it)) = 1;
-                    //b1.insert(std::distance(points.begin(),pit2),std::distance(edges.begin(),it)) = -1;
-                }
-                else if((it=edges.find(std::make_tuple(iv1,iv2)))!=edges.end())
-                {
-                    //b2.insert(std::distance(edges.begin(),it),std::distance(faces.begin(),itf)) = -1;
-                    pit1=points.find(iv1);
-                    pit2=points.find(iv2);
-                    //b1.insert(std::distance(points.begin(),pit1),std::distance(edges.begin(),it)) = 1;
-                    //b1.insert(std::distance(points.begin(),pit2),std::distance(edges.begin(),it)) = -1;
-                }
-                else
-                {
-                    it = edges.emplace(std::make_tuple(iv2,iv1)).first;
-                    //b2.insert(std::distance(edges.begin(),it),std::distance(faces.begin(),itf)) = 1;
-                    if((pit1=points.find(iv2))!=points.end())
-                    {
-                        //b1.insert(std::distance(points.begin(),pit1),std::distance(edges.begin(),it)) = 1;
-                    }
-                    else
-                    {
-                        pit1 = points.emplace(iv2).first;
-                        //b1.insert(std::distance(points.begin(),pit1),std::distance(edges.begin(),it)) = 1;
-                        vertex[iv2] = v2;
-                    }
-                    if((pit2=points.find(iv1))!=points.end())
-                    {
-                        //b1.insert(std::distance(points.begin(),pit2),std::distance(edges.begin(),it)) = -1;
-                    }
-                    else
-                    {
-                        pit2 = points.emplace(iv1).first;
-                        //b1.insert(std::distance(points.begin(),pit2),std::distance(edges.begin(),it)) = -1;
-                        vertex[iv1] = v1;
-                    }
-                }
-
-                if((it=edges.find(std::make_tuple(iv3,iv2)))!=edges.end())
-                {
-                    //b2.insert(std::distance(edges.begin(),it),std::distance(faces.begin(),itf)) = 1;
-                    pit1=points.find(iv3);
-                    pit2=points.find(iv2);
-                    //b1.insert(std::distance(points.begin(),pit1),std::distance(edges.begin(),it)) = 1;
-                    //b1.insert(std::distance(points.begin(),pit2),std::distance(edges.begin(),it)) = -1;
-                }
-                else if((it=edges.find(std::make_tuple(iv2,iv3)))!=edges.end())
-                {
-                    //b2.insert(std::distance(edges.begin(),it),std::distance(faces.begin(),itf)) = -1;
-                    pit1=points.find(iv2);
-                    pit2=points.find(iv3);
-                    //b1.insert(std::distance(points.begin(),pit1),std::distance(edges.begin(),it)) = 1;
-                    //b1.insert(std::distance(points.begin(),pit2),std::distance(edges.begin(),it)) = -1;
-                }
-                else
-                {
-                    it = edges.emplace(std::make_tuple(iv3,iv2)).first;
-                    //b2.insert(std::distance(edges.begin(),it),std::distance(faces.begin(),itf)) = 1;
-                    if((pit1=points.find(iv3))!=points.end())
-                    {
-                        //b1.insert(std::distance(points.begin(),pit1),std::distance(edges.begin(),it)) = 1;
-                    }
-                    else
-                    {
-                        pit1 = points.emplace(iv3).first;
-                        //b1.insert(std::distance(points.begin(),pit1),std::distance(edges.begin(),it)) = 1;
-                        vertex[iv3] = v3;
-                    }
-                    if((pit2=points.find(iv2))!=points.end())
-                    {
-                        //b1.insert(std::distance(points.begin(),pit2),std::distance(edges.begin(),it)) = -1;
-                    }
-                    else
-                    {
-                        pit2 = points.emplace(iv2).first;
-                        //b1.insert(std::distance(points.begin(),pit2),std::distance(edges.begin(),it)) = -1;
-                        vertex[iv2] = v2;
-                    }
-                }
-
-                //Second Triangle
                 if((it=edges.find(std::make_tuple(iv3,iv4)))!=edges.end())
                 {
                     //b2.insert(std::distance(edges.begin(),it),std::distance(faces.begin(),itf)) = 1;
@@ -310,55 +224,13 @@ void Mesh2D::voxelize(unsigned char* pixels)
                     }
                 }
 
-                if((it=edges.find(std::make_tuple(iv2,iv3)))!=edges.end())
+                if((it=edges.find(std::make_tuple(iv4,iv2)))!=edges.end())
                 {
                     //b2.insert(std::distance(edges.begin(),it),std::distance(faces.begin(),itf)) = 1;
-                    pit1=points.find(iv2);
-                    pit2=points.find(iv3);
-                    //b1.insert(std::distance(points.begin(),pit1),std::distance(edges.begin(),it)) = 1;
-                    //b1.insert(std::distance(points.begin(),pit2),std::distance(edges.begin(),it)) = -1;
-                }
-                else if((it=edges.find(std::make_tuple(iv3,iv2)))!=edges.end())
-                {
-                    //b2.insert(std::distance(edges.begin(),it),std::distance(faces.begin(),itf)) = -1;
-                    pit1=points.find(iv3);
+                    pit1=points.find(iv4);
                     pit2=points.find(iv2);
                     //b1.insert(std::distance(points.begin(),pit1),std::distance(edges.begin(),it)) = 1;
                     //b1.insert(std::distance(points.begin(),pit2),std::distance(edges.begin(),it)) = -1;
-                }
-                else
-                {
-                    it = edges.emplace(std::make_tuple(iv2,iv3)).first;
-                    //b2.insert(std::distance(edges.begin(),it),std::distance(faces.begin(),itf)) = 1;
-                    if((pit1=points.find(iv2))!=points.end())
-                    {
-                        //b1.insert(std::distance(points.begin(),pit1),std::distance(edges.begin(),it)) = 1;
-                    }
-                    else
-                    {
-                        pit1 = points.emplace(iv2).first;
-                        //b1.insert(std::distance(points.begin(),pit1),std::distance(edges.begin(),it)) = 1;
-                        vertex[iv2] = v2;
-                    }
-                    if((pit2=points.find(iv3))!=points.end())
-                    {
-                        //b1.insert(std::distance(points.begin(),pit2),std::distance(edges.begin(),it)) = -1;
-                    }
-                    else
-                    {
-                        pit2 = points.emplace(iv3).first;
-                        //b1.insert(std::distance(points.begin(),pit2),std::distance(edges.begin(),it)) = -1;
-                        vertex[iv3] = v3;
-                    }
-                }
-
-                if((it=edges.find(std::make_tuple(iv4,iv2)))!=edges.end())
-                {
-                   //b2.insert(std::distance(edges.begin(),it),std::distance(faces.begin(),itf)) = 1;
-                   pit1=points.find(iv4);
-                   pit2=points.find(iv2);
-                   //b1.insert(std::distance(points.begin(),pit1),std::distance(edges.begin(),it)) = 1;
-                   //b1.insert(std::distance(points.begin(),pit2),std::distance(edges.begin(),it)) = -1;
                 }
                 else if((it=edges.find(std::make_tuple(iv2,iv4)))!=edges.end())
                 {
@@ -393,6 +265,48 @@ void Mesh2D::voxelize(unsigned char* pixels)
                         vertex[iv2] = v2;
                     }
                 }
+
+                if((it=edges.find(std::make_tuple(iv2,iv1)))!=edges.end())
+                {
+                    //b2.insert(std::distance(edges.begin(),it),std::distance(faces.begin(),itf)) = 1;
+                    pit1=points.find(iv2);
+                    pit2=points.find(iv1);
+                    //b1.insert(std::distance(points.begin(),pit1),std::distance(edges.begin(),it)) = 1;
+                    //b1.insert(std::distance(points.begin(),pit2),std::distance(edges.begin(),it)) = -1;
+                }
+                else if((it=edges.find(std::make_tuple(iv1,iv2)))!=edges.end())
+                {
+                    //b2.insert(std::distance(edges.begin(),it),std::distance(faces.begin(),itf)) = -1;
+                    pit1=points.find(iv1);
+                    pit2=points.find(iv2);
+                    //b1.insert(std::distance(points.begin(),pit1),std::distance(edges.begin(),it)) = 1;
+                    //b1.insert(std::distance(points.begin(),pit2),std::distance(edges.begin(),it)) = -1;
+                }
+                else
+                {
+                    it = edges.emplace(std::make_tuple(iv2,iv1)).first;
+                    //b2.insert(std::distance(edges.begin(),it),std::distance(faces.begin(),itf)) = 1;
+                    if((pit1=points.find(iv2))!=points.end())
+                    {
+                        //b1.insert(std::distance(points.begin(),pit1),std::distance(edges.begin(),it)) = 1;
+                    }
+                    else
+                    {
+                        pit1 = points.emplace(iv2).first;
+                        //b1.insert(std::distance(points.begin(),pit1),std::distance(edges.begin(),it)) = 1;
+                        vertex[iv2] = v2;
+                    }
+                    if((pit2=points.find(iv1))!=points.end())
+                    {
+                        //b1.insert(std::distance(points.begin(),pit2),std::distance(edges.begin(),it)) = -1;
+                    }
+                    else
+                    {
+                        pit2 = points.emplace(iv1).first;
+                        //b1.insert(std::distance(points.begin(),pit2),std::distance(edges.begin(),it)) = -1;
+                        vertex[iv1] = v1;
+                    }
+                }
             }
             else
             {
@@ -420,16 +334,33 @@ bool Mesh2D::checkVoxel(unsigned char* offs)
 Eigen::SparseMatrix<float> Mesh2D::buildLaplace()
 {
     //Build Face Matrix
-    SparseMat mat,A;
+    SparseMat mat,bound;
     mat.resize(edges.size(),edges.size());
-    mat = derivative1(*this).transpose();
+    //mat = derivative1(*this).transpose();
     //derivative1(*this)*
     //Calculate Laplace Operator
     //mat = -1.0f*derivative1(*this)*hodge1(*this,true)*derivative1(*this).transpose()*hodge2(*this,false);
     //std::cout<<"HODGE DIMS"<<hodge1(*this,false).cols()<<" "<<hodge1(*this,false).rows()<<std::endl;
     //std::cout<<"DERIVATIVE DIMS"<<derivative1(*this,false).cols()<<" "<<derivative0(*this,false).rows()<<std::endl;
 
+    mat = -1.0f*derivative0(*this)*hodge2(*this,true)*derivative1(*this,true)*hodge1(*this,false);
+    bound = derivative1(*this);
+    for(int k=0;k<bound.outerSize();k++)
+    {
+        unsigned int nFaces=0;
+        for(Eigen::SparseMatrix<float>::InnerIterator it(bound,k);it;++it)
+        {
+            nFaces++;
+        }
+        if(nFaces!=2)
+        {
+            mat.prune([k](int i,int j,float v){return i!=k;});
+        }
+        std::cout<<"FACES: "<<nFaces<<std::endl;
+    }
+
     //mat = -1.0f*derivative0(*this)*hodge2(*this,true)*derivative1(*this,true)*hodge1(*this,false);
+
     std::cout<<"MAT DIMS: "<<mat.cols()<<" "<<mat.rows()<<std::endl;
     //Eigen::SelfAdjointEigenSolver<Eigen::SparseMatrix<float>> eigenSolver;
     //eigenSolver.compute(A);
@@ -439,7 +370,7 @@ Eigen::SparseMatrix<float> Mesh2D::buildLaplace()
     std::cout<<mat<<std::endl;
 
     Arpack arpack;
-    arpack.compute(mat,32,"LM");
+    arpack.compute(mat,4,"LM");
     eigenValues = arpack.eigenvalues();
     eigenVectors = arpack.eigenvectors();
     std::cout<<eigenValues.transpose()<<std::endl;

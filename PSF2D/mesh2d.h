@@ -54,7 +54,7 @@ public:
     Eigen::SparseMatrix<float> b2;
     Eigen::SparseMatrix<float> b1;
 
-    std::set<std::tuple<unsigned int,unsigned int,unsigned int>> faces;
+    std::set<std::tuple<unsigned int,unsigned int,unsigned int,unsigned int>> faces;
     std::set<std::tuple<unsigned int,unsigned int>> edges;
     std::set<unsigned int> points;
     std::map<unsigned int,Vertex2D> vertex;
