@@ -6,6 +6,9 @@
 #include <Eigen/Eigen>
 #include "imageviswidget.h"
 #include "voxelviswidget.h"
+#include "abstractsolver.h"
+#include "spectralfluidssolver2d.h"
+#include "spectralfluidssolver2domp.h"
 #include "mesh2d.h"
 
 namespace Ui {
@@ -21,16 +24,25 @@ public:
     ~MainWindow();
 private slots:
     void openFile();
+    void changeViscosity(double visc);
+    void changeNumberEigenfunctions(int n);
+    void changeResolution(int n);
+    void changeTimestep(double step);
     void intigrate();
+
+    void setVelocityNormalization(int);
+    void showGrid(bool showGrid);
+    void showVelocity(bool showVelocity);
+    void showVorticity(bool showVorticity);
+    void showMesh(bool showMesh);
 
     void changeToImageView();
     void changeToVoxelView();
-protected:
 private:
-    void voxelize(unsigned int w,unsigned int h);
-    bool checkVoxel(unsigned char* offs,int w,int h);
 
-    Mesh2D* mesh;
+    AbstractSolver* solver;
+    SpectralFluidsSolver2D* spectralFluidsSolver;
+    SpectralFluidsSolver2DOMP* spectralFluidsSolverOMP;
 
     QTimer updateTimer;
 

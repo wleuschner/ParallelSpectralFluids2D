@@ -32,7 +32,12 @@ SOURCES += main.cpp\
     face2d.cpp \
     voxelviswidget.cpp \
     flowviswidget.cpp \
-    imageviswidget.cpp
+    imageviswidget.cpp \
+    abstractsolver.cpp \
+    decmesh2d.cpp \
+    spectralfluidssolver2d.cpp \
+    spectralfluidssolver2domp.cpp \
+    abstractflowviswidget.cpp
 
 HEADERS  += mainwindow.h \
     dec.h \
@@ -42,6 +47,26 @@ HEADERS  += mainwindow.h \
     face2d.h \
     voxelviswidget.h \
     flowviswidget.h \
-    imageviswidget.h
-LIBS += -larpack
+    imageviswidget.h \
+    abstractsolver.h \
+    decmesh2d.h \
+    spectralfluidssolver2d.h \
+    spectralfluidssolver2domp.h \
+    abstractflowviswidget.h
+
+LIBS += -larpack -lGLU
 FORMS    += mainwindow.ui
+DEFINES = GLM_ENABLE_EXPERIMENTAL GLM_FORCE_SSE2
+
+QMAKE_CXXFLAGS_RELEASE -= -O2
+QMAKE_CXXFLAGS_RELEASE += -O3 -march=native
+
+QMAKE_LFLAGS_RELEASE -= -O1
+QMAKE_LFLAGS_RELEASE += -O3
+
+QMAKE_CXXFLAGS+= -fopenmp
+QMAKE_LFLAGS +=  -fopenmp
+
+DISTFILES += \
+    flow.fs \
+    flow.vs
