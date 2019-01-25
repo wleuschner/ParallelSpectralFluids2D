@@ -102,10 +102,10 @@
           <item>
            <widget class="QDoubleSpinBox" name="spinViscosity">
             <property name="maximum">
-             <double>1.000000000000000</double>
+             <float>1.000000000000000</float>
             </property>
             <property name="singleStep">
-             <double>0.010000000000000</double>
+             <float>0.010000000000000</float>
             </property>
            </widget>
           </item>
@@ -126,10 +126,10 @@
              <number>3</number>
             </property>
             <property name="maximum">
-             <double>99999999.000000000000000</double>
+             <float>99999999.000000000000000</float>
             </property>
             <property name="value">
-             <double>0.017000000000000</double>
+             <float>0.017000000000000</float>
             </property>
            </widget>
           </item>

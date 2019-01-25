@@ -14,13 +14,13 @@ void SpectralFluidsSolver2D::integrate()
 {
     std::cout<<"Advect"<<std::endl;
 
-    float e1 = 0.0f;
-    float e2 = 0.0f;
+    double e1 = 0.0f;
+    double e2 = 0.0f;
     for(unsigned int k=0;k<basisCoeff.rows();k++)
     {
         e1 += basisCoeff(k,0)*basisCoeff(k,0);
     }
-    Eigen::VectorXf vel(basisCoeff.rows());
+    Eigen::VectorXd vel(basisCoeff.rows());
 
     for(unsigned int k=0;k<basisCoeff.rows();k++)
     {
@@ -47,25 +47,25 @@ void SpectralFluidsSolver2D::integrate()
 
 void SpectralFluidsSolver2D::buildLaplace()
 {
-    Eigen::SparseMatrix<float> mat = 1.0f*derivative0(decMesh)*hodge2(decMesh,mesh->getResolution()*mesh->getResolution(),true)*derivative1(decMesh,true)*hodge1(decMesh,mesh->getResolution(),false);
-    Eigen::SparseMatrix<float> bound = derivative1(decMesh);
+    Eigen::SparseMatrix<double> mat = 1.0*derivative0(decMesh)*hodge2(decMesh,mesh->getResolution()*mesh->getResolution(),true)*derivative1(decMesh,true)*hodge1(decMesh,mesh->getResolution(),false);
+    Eigen::SparseMatrix<double> bound = derivative1(decMesh);
     curl = derivative1(decMesh,true)*hodge1(decMesh,mesh->getResolution(),false);
     for(int k=0;k<bound.outerSize();k++)
     {
         unsigned int nFaces=0;
-        for(Eigen::SparseMatrix<float>::InnerIterator it(bound,k);it;++it)
+        for(Eigen::SparseMatrix<double>::InnerIterator it(bound,k);it;++it)
         {
             nFaces++;
         }
         if(nFaces!=2)
         {
-            mat.prune([k](int i,int j,float v){return !(i==k||j==k);});
+            mat.prune([k](int i,int j,double v){return !(i==k||j==k);});
         }
     }
 
-    Spectra::SparseGenRealShiftSolve<float> op(mat);
-    float nearZ = 1.0f/(mesh->getResolution()*mesh->getResolution());
-    Spectra::GenEigsRealShiftSolver<float,Spectra::WHICH_LM,Spectra::SparseGenRealShiftSolve<float>> solver(&op,nEigenFunctions,2*nEigenFunctions+1,std::numeric_limits<float>::epsilon()+nearZ);
+    Spectra::SparseGenRealShiftSolve<double> op(mat);
+    double nearZ = 1.0f/(mesh->getResolution()*mesh->getResolution());
+    Spectra::GenEigsRealShiftSolver<double,Spectra::WHICH_LM,Spectra::SparseGenRealShiftSolve<double>> solver(&op,nEigenFunctions,2*nEigenFunctions+1,std::numeric_limits<double>::epsilon()+nearZ);
     solver.init();
 
     int nconv = solver.compute(1000,1e-10f,Spectra::WHICH_SM);
@@ -73,11 +73,11 @@ void SpectralFluidsSolver2D::buildLaplace()
     velBasisField = solver.eigenvectors().real();
     vortBasisField = curl*velBasisField;
 /*
-    vorticityField = Eigen::VectorXf::Zero(decMesh.getNumPoints());
+    vorticityField = Eigen::VectorXd::Zero(decMesh.getNumPoints());
     for(PointIterator it=decMesh.getPointIteratorBegin();it!=decMesh.getPointIteratorEnd();it++)
     {
         unsigned int i=decMesh.getPointIndex(*it);
-        glm::vec2 point=mesh->vertex[*it].pos;
+        glm::dvec2 point=mesh->vertex[*it].pos;
         if((point.x==256&&
             (point.y==128||point.y==384)))
         {
@@ -87,12 +87,12 @@ void SpectralFluidsSolver2D::buildLaplace()
     setInitialVorticityField(vorticityField);*/
 
 
-    velocityField = Eigen::VectorXf::Zero(decMesh.getNumEdges());
+    velocityField = Eigen::VectorXd::Zero(decMesh.getNumEdges());
     for(EdgeIterator it=decMesh.getEdgeIteratorBegin();it!=decMesh.getEdgeIteratorEnd();it++)
     {
         unsigned int i=decMesh.getEdgeIndex(*it);
-        glm::vec2 edge=mesh->vertex[std::get<1>(*it)].pos-mesh->vertex[std::get<0>(*it)].pos;
-        if(glm::dot(glm::vec2(1.0,0.0),edge)>std::numeric_limits<float>::epsilon()&&
+        glm::dvec2 edge=mesh->vertex[std::get<1>(*it)].pos-mesh->vertex[std::get<0>(*it)].pos;
+        if(glm::dot(glm::dvec2(1.0,0.0),edge)>std::numeric_limits<double>::epsilon()&&
            (mesh->vertex[std::get<0>(*it)].pos.x>=128||
            mesh->vertex[std::get<1>(*it)].pos.x<=256))
         {
@@ -106,14 +106,14 @@ void SpectralFluidsSolver2D::buildLaplace()
 
 void SpectralFluidsSolver2D::buildAdvection()
 {
-    std::vector<Eigen::MatrixXf> wedges;
+    std::vector<Eigen::MatrixXd> wedges;
     wedges.resize(static_cast<unsigned int>(eigenValues.rows()));
     advection.resize(static_cast<unsigned int>(eigenValues.rows()));
     for(unsigned int i=0;i<velBasisField.cols();i++)
     {
-        wedges[i] = Eigen::MatrixXf(decMesh.getNumPoints(),eigenValues.rows());
+        wedges[i] = Eigen::MatrixXd(decMesh.getNumPoints(),eigenValues.rows());
         wedges[i].setZero();
-        advection[i] = Eigen::MatrixXf(decMesh.getNumPoints(),eigenValues.rows());
+        advection[i] = Eigen::MatrixXd(decMesh.getNumPoints(),eigenValues.rows());
         advection[i].setZero();
     }
     for(FaceIterator it=decMesh.getFaceIteratorBegin();it!=decMesh.getFaceIteratorEnd();it++)
@@ -133,40 +133,40 @@ void SpectralFluidsSolver2D::buildAdvection()
         unsigned int ie3 = decMesh.getEdgeIndex(v3,v4);
         unsigned int ie4 = decMesh.getEdgeIndex(v4,v1);
 
-        float sig1=decMesh.getEdgeSignum(v1,v2);
-        float sig2=decMesh.getEdgeSignum(v2,v3);
-        float sig3=decMesh.getEdgeSignum(v3,v4);
-        float sig4=decMesh.getEdgeSignum(v4,v1);
+        double sig1=decMesh.getEdgeSignum(v1,v2);
+        double sig2=decMesh.getEdgeSignum(v2,v3);
+        double sig3=decMesh.getEdgeSignum(v3,v4);
+        double sig4=decMesh.getEdgeSignum(v4,v1);
 
         std::tuple<unsigned int,unsigned int> edge1 = decMesh.getEdge(v1,v2);
         std::tuple<unsigned int,unsigned int> edge2 = decMesh.getEdge(v2,v3);
         std::tuple<unsigned int,unsigned int> edge3 = decMesh.getEdge(v3,v4);
         std::tuple<unsigned int,unsigned int> edge4 = decMesh.getEdge(v4,v1);
 
-        glm::vec2 e1 = (sig1*(mesh->vertex[std::get<1>(edge1)].pos-mesh->vertex[std::get<0>(edge1)].pos));
-        glm::vec2 e2 = (sig2*(mesh->vertex[std::get<1>(edge2)].pos-mesh->vertex[std::get<0>(edge2)].pos));
-        glm::vec2 e3 = (sig3*(mesh->vertex[std::get<1>(edge3)].pos-mesh->vertex[std::get<0>(edge3)].pos));
-        glm::vec2 e4 = (sig4*(mesh->vertex[std::get<1>(edge4)].pos-mesh->vertex[std::get<0>(edge4)].pos));
+        glm::dvec2 e1 = (sig1*(mesh->vertex[std::get<1>(edge1)].pos-mesh->vertex[std::get<0>(edge1)].pos));
+        glm::dvec2 e2 = (sig2*(mesh->vertex[std::get<1>(edge2)].pos-mesh->vertex[std::get<0>(edge2)].pos));
+        glm::dvec2 e3 = (sig3*(mesh->vertex[std::get<1>(edge3)].pos-mesh->vertex[std::get<0>(edge3)].pos));
+        glm::dvec2 e4 = (sig4*(mesh->vertex[std::get<1>(edge4)].pos-mesh->vertex[std::get<0>(edge4)].pos));
 
-        glm::vec2 n1 = glm::rotate(glm::normalize(e1),glm::radians(-90.0f));
-        glm::vec2 n2 = glm::rotate(glm::normalize(e2),glm::radians(-90.0f));
-        glm::vec2 n3 = glm::rotate(glm::normalize(e3),glm::radians(-90.0f));
-        glm::vec2 n4 = glm::rotate(glm::normalize(e4),glm::radians(-90.0f));
+        glm::dvec2 n1 = glm::rotate(glm::normalize(e1),glm::radians(-90.0));
+        glm::dvec2 n2 = glm::rotate(glm::normalize(e2),glm::radians(-90.0));
+        glm::dvec2 n3 = glm::rotate(glm::normalize(e3),glm::radians(-90.0));
+        glm::dvec2 n4 = glm::rotate(glm::normalize(e4),glm::radians(-90.0));
 
 
         for(unsigned int i=0;i<nEigenFunctions;i++)
         {
-            float vel1a = sig1*eigenFunctions[i](ie1);
-            float vel2a = sig2*eigenFunctions[i](ie2);
-            float vel3a = sig3*eigenFunctions[i](ie3);
-            float vel4a = sig4*eigenFunctions[i](ie4);
+            double vel1a = sig1*eigenFunctions[i](ie1);
+            double vel2a = sig2*eigenFunctions[i](ie2);
+            double vel3a = sig3*eigenFunctions[i](ie3);
+            double vel4a = sig4*eigenFunctions[i](ie4);
 
             for(unsigned int j=0;j<nEigenFunctions;j++)
             {
-                float vel1b = sig1*eigenFunctions[j](ie1);
-                float vel2b = sig2*eigenFunctions[j](ie2);
-                float vel3b = sig3*eigenFunctions[j](ie3);
-                float vel4b = sig4*eigenFunctions[j](ie4);
+                double vel1b = sig1*eigenFunctions[j](ie1);
+                double vel2b = sig2*eigenFunctions[j](ie2);
+                double vel3b = sig3*eigenFunctions[j](ie3);
+                double vel4b = sig4*eigenFunctions[j](ie4);
 
                 wedges[i](iv2,j) += (0.25f*mesh->getResolution()*mesh->getResolution())*(vel1a*vel2b-vel1b*vel2a)*(n1.x*n2.y-n1.y*n2.x);
                 wedges[i](iv3,j) += (0.25f*mesh->getResolution()*mesh->getResolution())*(vel2a*vel3b-vel2b*vel3a)*(n2.x*n3.y-n2.y*n3.x);

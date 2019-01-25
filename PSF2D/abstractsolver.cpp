@@ -22,12 +22,12 @@ void AbstractSolver::setMesh(Mesh2D* mesh)
     buildAdvection();
 }
 
-void AbstractSolver::setInitialVelocityField(const Eigen::VectorXf& field)
+void AbstractSolver::setInitialVelocityField(const Eigen::VectorXd& field)
 {
     basisCoeff = velBasisField.transpose()*field;
 }
 
-void AbstractSolver::setInitialVorticityField(const Eigen::VectorXf& field)
+void AbstractSolver::setInitialVorticityField(const Eigen::VectorXd& field)
 {
     basisCoeff = (vortBasisField.transpose()*field);
 }
@@ -49,12 +49,12 @@ void AbstractSolver::setResolution(unsigned int res)
     buildAdvection();
 }
 
-void AbstractSolver::setTimestep(float timestep)
+void AbstractSolver::setTimestep(double timestep)
 {
     this->timeStep = timestep;
 }
 
-void AbstractSolver::setViscosity(float visc)
+void AbstractSolver::setViscosity(double visc)
 {
     this->viscosity = visc;
 }
@@ -74,47 +74,47 @@ unsigned int AbstractSolver::getNumEigenFunctions()
     return nEigenFunctions;
 }
 
-float AbstractSolver::getTimestep()
+double AbstractSolver::getTimestep()
 {
     return timeStep;
 }
 
-const Eigen::VectorXf& AbstractSolver::getEigenFunction(unsigned int n)
+const Eigen::VectorXd& AbstractSolver::getEigenFunction(unsigned int n)
 {
     return eigenFunctions[n];
 }
 
-const Eigen::MatrixXf& AbstractSolver::getVelocityBasisField()
+const Eigen::MatrixXd& AbstractSolver::getVelocityBasisField()
 {
     return velBasisField;
 }
 
-const Eigen::MatrixXf& AbstractSolver::getVorticityBasisField()
+const Eigen::MatrixXd& AbstractSolver::getVorticityBasisField()
 {
     return vortBasisField;
 }
 
-const Eigen::VectorXf& AbstractSolver::getBasisCoefficients()
+const Eigen::VectorXd& AbstractSolver::getBasisCoefficients()
 {
     return basisCoeff;
 }
 
-const Eigen::VectorXf& AbstractSolver::getVelocityField()
+const Eigen::VectorXd& AbstractSolver::getVelocityField()
 {
     return velocityField;
 }
 
-const Eigen::VectorXf& AbstractSolver::getVorticityField()
+const Eigen::VectorXd& AbstractSolver::getVorticityField()
 {
     return vorticityField;
 }
 
-float AbstractSolver::getMaxVorticity()
+double AbstractSolver::getMaxVorticity()
 {
     return maxRotation;
 }
 
-float AbstractSolver::getMinVorticity()
+double AbstractSolver::getMinVorticity()
 {
     return minRotation;
 }
@@ -124,8 +124,7 @@ void AbstractSolver::buildEigenFunctions()
     eigenFunctions.resize(nEigenFunctions);
     for(unsigned int i=0;i<velBasisField.cols();i++)
     {
-        Eigen::VectorXf e = velBasisField.col(i);
-        std::cout<<velBasisField.cols()<<" "<<e.rows()<<std::endl;
+        Eigen::VectorXd e = velBasisField.col(i);
         eigenFunctions[i] = e;
     }
 }

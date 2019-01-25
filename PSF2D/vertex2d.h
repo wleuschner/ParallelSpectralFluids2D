@@ -12,7 +12,7 @@ public:
     Vertex2D();
     Vertex2D(unsigned int x,unsigned int y);
 
-    glm::vec2 pos;
+    glm::dvec2 pos;
 };
 
 #endif // VERTEX2D_H

@@ -37,7 +37,8 @@ SOURCES += main.cpp\
     decmesh2d.cpp \
     spectralfluidssolver2d.cpp \
     spectralfluidssolver2domp.cpp \
-    abstractflowviswidget.cpp
+    abstractflowviswidget.cpp \
+    spectralfluidssolver2dcl.cpp
 
 HEADERS  += mainwindow.h \
     dec.h \
@@ -52,11 +53,12 @@ HEADERS  += mainwindow.h \
     decmesh2d.h \
     spectralfluidssolver2d.h \
     spectralfluidssolver2domp.h \
-    abstractflowviswidget.h
+    abstractflowviswidget.h \
+    spectralfluidssolver2dcl.h
 
-LIBS += -larpack -lGLU
+LIBS += -lOpenCL -larpack -lGLU
 FORMS    += mainwindow.ui
-DEFINES = GLM_ENABLE_EXPERIMENTAL GLM_FORCE_SSE2
+DEFINES = GLM_ENABLE_EXPERIMENTAL GLM_FORCE_SSE2 VIENNACL_HAVE_EIGEN
 
 QMAKE_CXXFLAGS_RELEASE -= -O2
 QMAKE_CXXFLAGS_RELEASE += -O3 -march=native

@@ -29,7 +29,7 @@ void FlowVisWidget::setSolver(AbstractSolver* solver)
 
 void FlowVisWidget::resizeGrid()
 {
-    DECMesh2D decMesh = solver->getDECMesh();
+    DECMesh2D& decMesh = solver->getDECMesh();
     velocities.resize(decMesh.getNumFaces());
     faceCenters.resize(decMesh.getNumFaces());
     gridEdges.resize(decMesh.getNumEdges());
@@ -52,12 +52,12 @@ void FlowVisWidget::resizeGrid()
         Vertex2D v3 = solver->getMesh()->vertex[iv3];
         Vertex2D v4 = solver->getMesh()->vertex[iv4];
 
-        glm::vec2 e1 = v2.pos-v1.pos;
-        glm::vec2 e2 = v3.pos-v2.pos;
-        glm::vec2 e3 = v4.pos-v3.pos;
-        glm::vec2 e4 = v1.pos-v4.pos;
+        glm::dvec2 e1 = v2.pos-v1.pos;
+        glm::dvec2 e2 = v3.pos-v2.pos;
+        glm::dvec2 e3 = v4.pos-v3.pos;
+        glm::dvec2 e4 = v1.pos-v4.pos;
 
-        glm::vec2 center = v3.pos+0.5f*(v1.pos-v3.pos);
+        glm::dvec2 center = v3.pos+0.5*(v1.pos-v3.pos);
 
         gridEdges[ie1] = e1;
         gridEdges[ie2] = e2;
@@ -79,10 +79,6 @@ void FlowVisWidget::setImage(QImage image)
 
 void FlowVisWidget::initializeGL()
 {
-    program.addShaderFromSourceFile(QOpenGLShader::Vertex,"../PSF2D/flow.vs");
-    program.addShaderFromSourceFile(QOpenGLShader::Fragment,"../PSF2D/flow.fs");
-    program.link();
-
     glClearColor(1.0f,1.0f,1.0f,1.0f);
     glDisable(GL_DEPTH_TEST);
     glHint(GL_PERSPECTIVE_CORRECTION_HINT,GL_NICEST);
@@ -124,17 +120,17 @@ void FlowVisWidget::setVorticityVisible(bool state)
 /*void FlowVisWidget::paintGL()
 {
     DECMesh2D decMesh = solver->getDECMesh();
-    Eigen::VectorXf velocityField = solver->getVelocityField();
-    Eigen::VectorXf vorticityField = solver->getVorticityField();
+    Eigen::VectorXd velocityField = solver->getVelocityField();
+    Eigen::VectorXd vorticityField = solver->getVorticityField();
     unsigned int width = solver->getMesh()->getWidth();
     unsigned int height = solver->getMesh()->getHeight();
     unsigned int resX = solver->getMesh()->getResolution();
     unsigned int resY = solver->getMesh()->getResolution();
 
-    float maxVort = solver->getMaxVorticity();
-//    float minVort = mesh->vorticityField.cwiseAbs().minCoeff();
-    //float maxVort = mesh->maxRotation;
-    float minVort = solver->getMinVorticity();
+    double maxVort = solver->getMaxVorticity();
+//    double minVort = mesh->vorticityField.cwiseAbs().minCoeff();
+    //double maxVort = mesh->maxRotation;
+    double minVort = solver->getMinVorticity();
 
     for(FaceIterator fit=solver->getDECMesh().getFaceIteratorBegin();fit!=solver->getDECMesh().getFaceIteratorEnd();fit++)
     {
@@ -174,10 +170,10 @@ void FlowVisWidget::setVorticityVisible(bool state)
             glBegin(GL_LINES);
             for(unsigned int y=0;y<resY;y++)
             {
-                float yOfs = static_cast<float>(y)/static_cast<float>(resY);
-                glm::vec2 a=glm::mix(glm::vec2(vort1,vort4),glm::vec2(vort2,vort3),yOfs);
-                a = glm::clamp(a,glm::vec2(-1.0f,-1.0f),glm::vec2(1.0f,1.0f));
-                a += glm::vec2(1.0f,1.0f);
+                double yOfs = static_cast<double>(y)/static_cast<double>(resY);
+                glm::dvec2 a=glm::mix(glm::dvec2(vort1,vort4),glm::dvec2(vort2,vort3),yOfs);
+                a = glm::clamp(a,glm::dvec2(-1.0f,-1.0f),glm::dvec2(1.0f,1.0f));
+                a += glm::dvec2(1.0f,1.0f);
                 glm::vec3 color1 = glm::mix(glm::vec3(1.0f,1.0f,1.0f),glm::vec3(0.0f,0.0f,0.0f),a.x/2.0f);
                 glm::vec3 color2 = glm::mix(glm::vec3(1.0f,1.0f,1.0f),glm::vec3(0.0f,0.0f,0.0f),a.y/2.0f);
                 glColor3ub(color1.r*255,color1.g*255,color1.b*255);
@@ -220,19 +216,19 @@ void FlowVisWidget::setVorticityVisible(bool state)
 
         if(velocityVisible)
         {
-            glm::vec2 e1 = v2.pos-v1.pos;
-            glm::vec2 e2 = v3.pos-v2.pos;
-            glm::vec2 e3 = v4.pos-v3.pos;
-            glm::vec2 e4 = v1.pos-v4.pos;
+            glm::dvec2 e1 = v2.pos-v1.pos;
+            glm::dvec2 e2 = v3.pos-v2.pos;
+            glm::dvec2 e3 = v4.pos-v3.pos;
+            glm::dvec2 e4 = v1.pos-v4.pos;
 
-            glm::vec2 vel = glm::rotate(s1*velocityField(decMesh.getEdgeIndex(iv1,iv2))*glm::normalize(e1)+
+            glm::dvec2 vel = glm::rotate(s1*velocityField(decMesh.getEdgeIndex(iv1,iv2))*glm::normalize(e1)+
                                         s2*velocityField(decMesh.getEdgeIndex(iv2,iv3))*glm::normalize(e2)+
                                         s3*velocityField(decMesh.getEdgeIndex(iv3,iv4))*glm::normalize(e3)+
                                         s4*velocityField(decMesh.getEdgeIndex(iv4,iv1))*glm::normalize(e4),glm::radians(-90.0f));
             vel = solver->getTimestep()*vel;
 
-            glm::vec2 center = v3.pos+0.5f*(v1.pos-v3.pos);
-            glm::vec2 dir = center+vel;
+            glm::dvec2 center = v3.pos+0.5f*(v1.pos-v3.pos);
+            glm::dvec2 dir = center+vel;
             glBegin(GL_LINES);
             glColor3f(1.0f,0.0f,0.0f);
             glVertex2f(center.x,center.y);
@@ -255,19 +251,20 @@ void FlowVisWidget::paintEvent(QPaintEvent *event)
 
 
     QPainter painter;
-    DECMesh2D decMesh = solver->getDECMesh();
-    Eigen::VectorXf velocityField = solver->getVelocityField();
-    Eigen::VectorXf vorticityField = solver->getVorticityField();
+    DECMesh2D& decMesh = solver->getDECMesh();
+    Mesh2D* mesh = solver->getMesh();
+    const Eigen::VectorXd& velocityField = solver->getVelocityField();
+    const Eigen::VectorXd& vorticityField = solver->getVorticityField();
     unsigned int width = solver->getMesh()->getWidth();
     unsigned int height = solver->getMesh()->getHeight();
     unsigned int resX = solver->getMesh()->getResolution();
     unsigned int resY = solver->getMesh()->getResolution();
 
     renderBuffer.fill(Qt::transparent);
-    float maxVort = solver->getMaxVorticity();
-//    float minVort = mesh->vorticityField.cwiseAbs().minCoeff();
-    //float maxVort = mesh->maxRotation;
-    float minVort = solver->getMinVorticity();
+    double maxVort = solver->getMaxVorticity();
+//    double minVort = mesh->vorticityField.cwiseAbs().minCoeff();
+    //double maxVort = mesh->maxRotation;
+    double minVort = solver->getMinVorticity();
 
     painter.begin(&renderBuffer);
 
@@ -280,8 +277,8 @@ void FlowVisWidget::paintEvent(QPaintEvent *event)
 
     #pragma omp parallel
     {
-        FaceIterator fit=solver->getDECMesh().getFaceIteratorBegin();
-        std::advance(fit,omp_get_thread_num()*(solver->getDECMesh().getNumFaces()/omp_get_num_threads()));
+        FaceIterator fit=decMesh.getFaceIteratorBegin();
+        std::advance(fit,omp_get_thread_num()*(decMesh.getNumFaces()/omp_get_num_threads()));
         #pragma omp for
         for(unsigned int i=0;i<decMesh.getNumFaces();i++)
         {
@@ -292,26 +289,26 @@ void FlowVisWidget::paintEvent(QPaintEvent *event)
 
             if(vorticityVisible)
             {
-                Vertex2D v1 = solver->getMesh()->vertex[iv1];
+                Vertex2D v1 = mesh->vertex[iv1];
 
-                float vort1 = (vorticityField(decMesh.getPointIndex(iv1)))/(maxVort*0.05);
-                float vort2 = (vorticityField(decMesh.getPointIndex(iv2)))/(maxVort*0.05);
-                float vort3 = (vorticityField(decMesh.getPointIndex(iv3)))/(maxVort*0.05);
-                float vort4 = (vorticityField(decMesh.getPointIndex(iv4)))/(maxVort*0.05);
+                double vort1 = (vorticityField(decMesh.getPointIndex(iv1)))/(maxVort*0.05);
+                double vort2 = (vorticityField(decMesh.getPointIndex(iv2)))/(maxVort*0.05);
+                double vort3 = (vorticityField(decMesh.getPointIndex(iv3)))/(maxVort*0.05);
+                double vort4 = (vorticityField(decMesh.getPointIndex(iv4)))/(maxVort*0.05);
 
-                glm::vec2 ySlope = (1.0f/resY)*glm::vec2(vort2-vort1,vort3-vort4);
-                glm::vec2 yBegin = glm::vec2(vort1,vort4);
+                glm::dvec2 ySlope = (1.0/resY)*glm::dvec2(vort2-vort1,vort3-vort4);
+                glm::dvec2 yBegin = glm::dvec2(vort1,vort4);
                 for(unsigned int y=0;y<resY;y++)
                 {
                     unsigned int posY = v1.pos.y+y;
                     unsigned int *startLine = rotationFieldPixels+((posY)*imageWidth+static_cast<unsigned int>(v1.pos.x));
 
-                    float xSlope = (1.0f/resX)*(yBegin.y-yBegin.x);
-                    float xBegin = yBegin.x;
+                    double xSlope = (1.0f/resX)*(yBegin.y-yBegin.x);
+                    double xBegin = yBegin.x;
                     for(unsigned int x=0;x<resX;x++)
                     {
-                        float c = xBegin;
-                        c = glm::clamp(c,-1.0f,1.0f);
+                        double c = xBegin;
+                        c = glm::clamp(c,-1.0,1.0);
                         glm::ivec3 color;
                         if(c>0)
                         {
@@ -338,22 +335,22 @@ void FlowVisWidget::paintEvent(QPaintEvent *event)
 
                 unsigned int fidx = decMesh.getFaceIndex(iv1,iv2,iv3,iv4);
 
-                glm::vec2 e1 = gridEdges[ie1];
-                glm::vec2 e2 = gridEdges[ie2];
-                glm::vec2 e3 = gridEdges[ie3];
-                glm::vec2 e4 = gridEdges[ie4];
+                glm::dvec2 e1 = gridEdges[ie1];
+                glm::dvec2 e2 = gridEdges[ie2];
+                glm::dvec2 e3 = gridEdges[ie3];
+                glm::dvec2 e4 = gridEdges[ie4];
 
-                float s1=decMesh.getEdgeSignum(iv1,iv2);
-                float s2=decMesh.getEdgeSignum(iv2,iv3);
-                float s3=decMesh.getEdgeSignum(iv3,iv4);
-                float s4=decMesh.getEdgeSignum(iv4,iv1);
+                double s1=decMesh.getEdgeSignum(iv1,iv2);
+                double s2=decMesh.getEdgeSignum(iv2,iv3);
+                double s3=decMesh.getEdgeSignum(iv3,iv4);
+                double s4=decMesh.getEdgeSignum(iv4,iv1);
 
-                glm::vec2 vel = glm::rotate(0.5f*(s1*velocityField(ie1)*glm::normalize(s1*e1)+s3*velocityField(ie3)*glm::normalize(s3*e3))+
-                                            0.5f*(s2*velocityField(ie2)*glm::normalize(s2*e2)+s4*velocityField(ie4)*glm::normalize(s4*e4)),
-                                            glm::radians(-90.0f));
+                glm::dvec2 vel = glm::rotate(0.5*(s1*velocityField(ie1)*glm::normalize(s1*e1)+s3*velocityField(ie3)*glm::normalize(s3*e3))+
+                                            0.5*(s2*velocityField(ie2)*glm::normalize(s2*e2)+s4*velocityField(ie4)*glm::normalize(s4*e4)),
+                                            glm::radians(-90.0));
                 if(velocityNormalizationState==UNIT_NORMALIZATION)
                 {
-                    vel = (solver->getMesh()->getResolution()/2.0f)*glm::normalize(vel);
+                    vel = (mesh->getResolution()/2.0)*glm::normalize(vel);
                 }
                 else if(velocityNormalizationState==TIMESTEP_NORMALIZATION)
                 {
@@ -376,10 +373,10 @@ void FlowVisWidget::paintEvent(QPaintEvent *event)
 
         unsigned int fidx = decMesh.getFaceIndex(iv1,iv2,iv3,iv4);
 
-        Vertex2D v1 = solver->getMesh()->vertex[iv1];
-        Vertex2D v2 = solver->getMesh()->vertex[iv2];
-        Vertex2D v3 = solver->getMesh()->vertex[iv3];
-        Vertex2D v4 = solver->getMesh()->vertex[iv4];
+        Vertex2D v1 = mesh->vertex[iv1];
+        Vertex2D v2 = mesh->vertex[iv2];
+        Vertex2D v3 = mesh->vertex[iv3];
+        Vertex2D v4 = mesh->vertex[iv4];
 
         if(gridVisible)
         {
@@ -391,12 +388,12 @@ void FlowVisWidget::paintEvent(QPaintEvent *event)
 
         if(velocityVisible)
         {
-            glm::vec2 faceCenter = faceCenters[fidx];
-            glm::vec2 vel = velocities[fidx];
+            glm::dvec2 faceCenter = faceCenters[fidx];
+            glm::dvec2 vel = velocities[fidx];
 
             painter.drawEllipse(faceCenter.x-4,faceCenter.y-4,8.0,8.0);
 
-            glm::vec2 dir = faceCenter+vel;
+            glm::dvec2 dir = faceCenter+vel;
             painter.setPen(red);
             painter.drawLine(faceCenter.x,faceCenter.y,dir.x,dir.y);
         }

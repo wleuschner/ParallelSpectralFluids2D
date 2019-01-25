@@ -1,51 +1,52 @@
-#include "spectralfluidssolver2domp.h"
+#include "spectralfluidssolver2dcl.h"
 #include "Spectra/MatOp/SparseSymShiftSolve.h"
 #include "Spectra/SymEigsShiftSolver.h"
 #include "dec.h"
 #include <iostream>
 #include <glm/gtx/rotate_vector.hpp>
+#include <viennacl/vector.hpp>
+#include <viennacl/matrix.hpp>
+#include <viennacl/linalg/inner_prod.hpp>
 
-SpectralFluidsSolver2DOMP::SpectralFluidsSolver2DOMP() : AbstractSolver()
+SpectralFluidsSolver2DCL::SpectralFluidsSolver2DCL() : AbstractSolver()
 {
 
 }
 
-void SpectralFluidsSolver2DOMP::integrate()
+void SpectralFluidsSolver2DCL::integrate()
 {
-    double e1 = 0.0;
-    double e2 = 0.0;
+    viennacl::scalar<double> e1 = 0.0f;
+    viennacl::scalar<double> e2 = 0.0f;
 
-    e1 = basisCoeff.dot(basisCoeff);
+    e1 = viennacl::linalg::inner_prod(vclBasisCoeff,vclBasisCoeff);
 
-    Eigen::VectorXd vel(nEigenFunctions);
-    #pragma omp parallel for
+    viennacl::vector<double> vel(nEigenFunctions);
     for(unsigned int k=0;k<nEigenFunctions;k++)
     {
-        vel(k) = (basisCoeff.transpose()*advection[k]*basisCoeff);
+        //vel(k) = viennacl::linalg::inner_prod(vclBasisCoeff,viennacl::linalg::prod(vclAdvection[k],vclBasisCoeff));
     }
-    basisCoeff += timeStep*vel;
+    vclBasisCoeff += timeStep*vel;
 
-    e2 = basisCoeff.dot(basisCoeff);
+    e2 = viennacl::linalg::inner_prod(vclBasisCoeff,vclBasisCoeff);
 
-    basisCoeff *= std::sqrt(e1/e2);
+    vclBasisCoeff *= std::sqrt(e1/e2);
 
-    #pragma omp parallel for
     for(unsigned int k=0;k<nEigenFunctions;k++)
     {
-        basisCoeff(k) *= std::exp(-viscosity*eigenValues(k)*(timeStep));
+        vclBasisCoeff(k) *= std::exp(viscosity*eigenValues(k)*(timeStep));
     }
 
-    velocityField = velBasisField*basisCoeff;
-    vorticityField = curl*velocityField;
+    vclVelocityField = viennacl::linalg::prod(vclVelBasisField,vclBasisCoeff);
+    vclVorticityField = viennacl::linalg::prod(vclCurl,vclVelocityField);
     maxRotation = vorticityField.cwiseAbs().maxCoeff();
     minRotation = vorticityField.minCoeff();
 }
 
-void SpectralFluidsSolver2DOMP::buildLaplace()
+void SpectralFluidsSolver2DCL::buildLaplace()
 {
-    Eigen::SparseMatrix<double> mat = 1.0*(derivative0(decMesh)*hodge2(decMesh,1.0,true)*derivative1(decMesh,true)*hodge1(decMesh,1.0,false));
+    Eigen::SparseMatrix<double> mat = -1.0f*(derivative0(decMesh)*hodge2(decMesh,mesh->getResolution()*mesh->getResolution(),true)*derivative1(decMesh,true)*hodge1(decMesh,mesh->getResolution(),false));
     Eigen::SparseMatrix<double> bound = derivative1(decMesh);
-    curl = derivative1(decMesh,true)*hodge1(decMesh,1.0f,false);
+    curl = derivative1(decMesh,true)*hodge1(decMesh,mesh->getResolution(),false);
     for(int k=0;k<bound.outerSize();k++)
     {
         unsigned int nFaces=0;
@@ -55,13 +56,13 @@ void SpectralFluidsSolver2DOMP::buildLaplace()
         }
         if(nFaces!=2)
         {
-            //mat.prune([k](int i,int j,double v){return !(i==k||j==k);});
+            mat.prune([k](int i,int j,double v){return !(i==k||j==k);});
         }
     }
-    mat.pruned();
 
     bool decompositionDone=false;
-    double omega = 0.175;
+    double nearZ = 1.0f/(mesh->getResolution()*mesh->getResolution());
+    double omega = 0.0f;
     while(!decompositionDone)
     {
         try
@@ -70,7 +71,7 @@ void SpectralFluidsSolver2DOMP::buildLaplace()
             Spectra::SymEigsShiftSolver<double,Spectra::WHICH_LM,Spectra::SparseSymShiftSolve<double>> solver(&op,nEigenFunctions,2*nEigenFunctions,omega);
             solver.init();
 
-            int nconv = solver.compute(1000,1e-1,Spectra::WHICH_SM);
+            int nconv = solver.compute(1000,1e-10f,Spectra::WHICH_LM);
             if(solver.info()==Spectra::SUCCESSFUL)
             {
                 eigenValues = solver.eigenvalues().real();
@@ -81,7 +82,7 @@ void SpectralFluidsSolver2DOMP::buildLaplace()
         }
         catch(std::runtime_error e)
         {
-            omega+=std::numeric_limits<double>::epsilon();
+            omega+=nearZ;
             std::cout<<"Increase omega"<<std::endl;
         }
     }
@@ -92,29 +93,29 @@ void SpectralFluidsSolver2DOMP::buildLaplace()
         unsigned int i=decMesh.getPointIndex(*it);
         glm::dvec2 point=mesh->vertex[*it].pos;
         if((point.x==512&&
-            (point.y==512||point.y==512)))
+            (point.y==448||point.y==576)))
         {
             vorticityField(i) = 1000*2*3.141;
         }
     }
     setInitialVorticityField(vorticityField);
 
-
-    /*velocityField = Eigen::VectorXd::Zero(decMesh.getNumEdges());
+/*
+    velocityField = Eigen::VectorXd::Zero(decMesh.getNumEdges());
     for(EdgeIterator it=decMesh.getEdgeIteratorBegin();it!=decMesh.getEdgeIteratorEnd();it++)
     {
         unsigned int i=decMesh.getEdgeIndex(*it);
         glm::dvec2 edge=mesh->vertex[std::get<1>(*it)].pos-mesh->vertex[std::get<0>(*it)].pos;
         if(glm::dot(glm::dvec2(1.0,0.0),edge)>std::numeric_limits<double>::epsilon())
         {
-            velocityField(i) = -(edge.x>0?1:-1)*16.0;
+            velocityField(i) = -(edge.x>0?1:-1)*16.0f;
         }
     }
     setInitialVelocityField(velocityField);*/
 
 }
 
-void SpectralFluidsSolver2DOMP::buildAdvection()
+void SpectralFluidsSolver2DCL::buildAdvection()
 {
     std::vector<Eigen::MatrixXd> wedges;
     wedges.resize(static_cast<unsigned int>(eigenValues.rows()));
@@ -178,10 +179,10 @@ void SpectralFluidsSolver2DOMP::buildAdvection()
                 double vel3b = sig3*velBasisField(ie3,j);
                 double vel4b = sig4*velBasisField(ie4,j);
 
-                wedges[i](iv2,j) += (0.25)*(vel1a*vel2b-vel1b*vel2a)*(n1.x*n2.y-n1.y*n2.x);
-                wedges[i](iv3,j) += (0.25)*(vel2a*vel3b-vel2b*vel3a)*(n2.x*n3.y-n2.y*n3.x);
-                wedges[i](iv4,j) += (0.25)*(vel3a*vel4b-vel3b*vel4a)*(n3.x*n4.y-n3.y*n4.x);
-                wedges[i](iv1,j) += (0.25)*(vel4a*vel1b-vel4b*vel1a)*(n4.x*n1.y-n4.y*n1.x);
+                wedges[i](iv2,j) += (0.25*mesh->getResolution()*mesh->getResolution())*(vel1a*vel2b-vel1b*vel2a)*(n1.x*n2.y-n1.y*n2.x);
+                wedges[i](iv3,j) += (0.25*mesh->getResolution()*mesh->getResolution())*(vel2a*vel3b-vel2b*vel3a)*(n2.x*n3.y-n2.y*n3.x);
+                wedges[i](iv4,j) += (0.25*mesh->getResolution()*mesh->getResolution())*(vel3a*vel4b-vel3b*vel4a)*(n3.x*n4.y-n3.y*n4.x);
+                wedges[i](iv1,j) += (0.25*mesh->getResolution()*mesh->getResolution())*(vel4a*vel1b-vel4b*vel1a)*(n4.x*n1.y-n4.y*n1.x);
             }
         }
     }

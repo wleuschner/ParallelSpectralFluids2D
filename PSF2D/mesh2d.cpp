@@ -7,7 +7,7 @@
 #include "Spectra/GenEigsRealShiftSolver.h"
 #include "Spectra/Util/SelectionRule.h"
 #include "dec.h"
-typedef Eigen::SparseMatrix<float> SparseMat;
+typedef Eigen::SparseMatrix<double> SparseMat;
 typedef Eigen::SimplicialLDLT<SparseMat> SparseChol;
 typedef Eigen::ArpackGeneralizedSelfAdjointEigenSolver <SparseMat, SparseChol> Arpack;
 
@@ -57,10 +57,10 @@ DECMesh2D Mesh2D::voxelize()
         for(unsigned int x=0;x<width/resolution;x++)
         {
             unsigned char* start = &pixels[y*width*resolution+x*resolution];
-            iv1 = y*(width/resolution+1)+x; //UP LEFT Vert
-            iv2 = y*(width/resolution+1)+x+1; //UP RIGHT Vert
-            iv3 = (y+1)*(width/resolution+1)+x; //DOWN LEFT vert
-            iv4 = (y+1)*(width/resolution+1)+x+1; //DOWN RIGHT vert*/
+            iv1 = y*(width/resolution+1)+x; //DOWN LEFT Vert
+            iv2 = y*(width/resolution+1)+x+1; //DOWN RIGHT Vert
+            iv3 = (y+1)*(width/resolution+1)+x; //UP LEFT vert
+            iv4 = (y+1)*(width/resolution+1)+x+1; //UP RIGHT vert*/
 
             if(checkVoxel(start))
             {

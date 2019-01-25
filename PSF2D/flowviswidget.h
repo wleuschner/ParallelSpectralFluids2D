@@ -5,8 +5,6 @@
 #include <QImage>
 #include <QWidget>
 #include <QOpenGLWidget>
-#include <QOpenGLShaderProgram>
-#include <QOpenGLBuffer>
 #include "abstractsolver.h"
 
 class FlowVisWidget : public QOpenGLWidget
@@ -38,19 +36,17 @@ signals:
 
 public slots:
 private:
-    QOpenGLBuffer interpolationBuffer;
-    QOpenGLShaderProgram program;
     QImage renderBuffer;
     QImage rotationField;
     unsigned int* rotationFieldPixels;
     QImage originalImage;
 
-    std::vector<glm::vec2> velocities;
-    std::vector<glm::vec2> faceCenters;
+    std::vector<glm::dvec2> velocities;
+    std::vector<glm::dvec2> faceCenters;
 
-    std::vector<glm::vec2> gridEdges;
+    std::vector<glm::dvec2> gridEdges;
 
-    float meshAlpha;
+    double meshAlpha;
     bool vorticityVisible;
     bool velocityVisible;
     bool gridVisible;

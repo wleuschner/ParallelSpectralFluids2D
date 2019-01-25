@@ -13,57 +13,57 @@ public:
     virtual void integrate()=0;
     void setMesh(Mesh2D* mesh);
 
-    void setInitialVelocityField(const Eigen::VectorXf& field);
-    void setInitialVorticityField(const Eigen::VectorXf& field);
+    void setInitialVelocityField(const Eigen::VectorXd& field);
+    void setInitialVorticityField(const Eigen::VectorXd& field);
 
     void setNumberEigenFunctions(unsigned int n);
     void setResolution(unsigned int res);
-    void setViscosity(float visc);
-    void setTimestep(float timestep);
+    void setViscosity(double visc);
+    void setTimestep(double timestep);
 
     Mesh2D* getMesh();
     DECMesh2D& getDECMesh();
 
     unsigned int getNumEigenFunctions();
-    float getTimestep();
-    const Eigen::VectorXf& getEigenFunction(unsigned int n);
-    const Eigen::MatrixXf& getVelocityBasisField();
-    const Eigen::MatrixXf& getVorticityBasisField();
-    const Eigen::VectorXf& getBasisCoefficients();
-    const Eigen::VectorXf& getVelocityField();
-    const Eigen::VectorXf& getVorticityField();
-    float getMaxVorticity();
-    float getMinVorticity();
+    double getTimestep();
+    const Eigen::VectorXd& getEigenFunction(unsigned int n);
+    const Eigen::MatrixXd& getVelocityBasisField();
+    const Eigen::MatrixXd& getVorticityBasisField();
+    const Eigen::VectorXd& getBasisCoefficients();
+    const Eigen::VectorXd& getVelocityField();
+    const Eigen::VectorXd& getVorticityField();
+    double getMaxVorticity();
+    double getMinVorticity();
 protected:
     virtual void buildLaplace()=0;
     virtual void buildAdvection()=0;
 
     void buildEigenFunctions();
 
-    float minRotation;
-    float maxRotation;
+    double minRotation;
+    double maxRotation;
 
     unsigned int nEigenFunctions;
     unsigned int resolution;
-    float timeStep;
-    float viscosity;
+    double timeStep;
+    double viscosity;
 
     Mesh2D* mesh;
     DECMesh2D decMesh;
 
-    Eigen::SparseMatrix<float> curl;
+    Eigen::SparseMatrix<double> curl;
 
-    std::vector<Eigen::VectorXf> eigenFunctions;
+    std::vector<Eigen::VectorXd> eigenFunctions;
 
-    Eigen::VectorXf vorticityField;
-    Eigen::VectorXf velocityField;
+    Eigen::VectorXd vorticityField;
+    Eigen::VectorXd velocityField;
 
-    std::vector<Eigen::MatrixXf> advection;
+    std::vector<Eigen::MatrixXd> advection;
 
-    Eigen::VectorXf eigenValues;
-    Eigen::VectorXf basisCoeff;
-    Eigen::MatrixXf velBasisField;
-    Eigen::MatrixXf vortBasisField;
+    Eigen::VectorXd eigenValues;
+    Eigen::VectorXd basisCoeff;
+    Eigen::MatrixXd velBasisField;
+    Eigen::MatrixXd vortBasisField;
 private:
 };
 

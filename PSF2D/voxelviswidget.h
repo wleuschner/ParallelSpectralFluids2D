@@ -45,13 +45,13 @@ private:
     unsigned int* rotationFieldPixels;
     QImage originalImage;
 
-    std::vector<glm::vec2> velocities;
-    std::vector<glm::vec2> faceCenters;
+    std::vector<glm::dvec2> velocities;
+    std::vector<glm::dvec2> faceCenters;
 
-    std::vector<glm::vec2> gridEdges;
+    std::vector<glm::dvec2> gridEdges;
 
     unsigned int currentBasisFunction;
-    float meshAlpha;
+    double meshAlpha;
     bool vorticityVisible;
     bool velocityVisible;
     bool gridVisible;

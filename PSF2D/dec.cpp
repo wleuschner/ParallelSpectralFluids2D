@@ -2,35 +2,41 @@
 #include <iostream>
 
 
-Eigen::SparseMatrix<float> hodge2(DECMesh2D& mesh,float area,bool dual)
+Eigen::SparseMatrix<double> hodge2(DECMesh2D& mesh,double area,bool dual)
 {
-    Eigen::SparseMatrix<float> h,d;
+    Eigen::SparseMatrix<double> h,b0,b1;
+
     if(dual)
     {
-        d = derivative0(mesh,false);
-    }
-    float primalV = area;
-    if(dual)
-    {
+        b0 = derivative0(mesh);
+        b1 = derivative1(mesh);
         h.resize(mesh.getNumPoints(),mesh.getNumPoints());
-        for(unsigned int i=0;i<mesh.getNumPoints();i++)
+        for(PointIterator pit=mesh.getPointIteratorBegin();pit!=mesh.getPointIteratorEnd();pit++)
         {
-            unsigned int nVerts=0;
-            for(Eigen::SparseMatrix<float>::InnerIterator it(d,i);it;++it)
+            unsigned int i=mesh.getPointIndex(*pit);
+            unsigned int nFaces=0;
+            for(Eigen::SparseMatrix<double>::InnerIterator it(b0,i);it;++it)
             {
-                nVerts++;
+                for(Eigen::SparseMatrix<double>::InnerIterator fit(b1,it.row());fit;++fit)
+                {
+                    nFaces++;
+                }
             }
-            if(nVerts==2)
+            if(nFaces==2)
             {
-                h.insert(i,i)=1.0f/(primalV/4);
+                h.insert(i,i)=4.0;
             }
-            else if(nVerts==3)
+            else if(nFaces==4)
             {
-                h.insert(i,i)=1.0f/(primalV/2);
+                h.insert(i,i)=2.0;
             }
-            else if(nVerts==4)
+            else if(nFaces==6)
             {
-                h.insert(i,i)=1.0f/(primalV);
+                h.insert(i,i)=1.3333333333333;
+            }
+            else if(nFaces==8)
+            {
+                h.insert(i,i)=1.0;
             }
         }
     }
@@ -39,51 +45,62 @@ Eigen::SparseMatrix<float> hodge2(DECMesh2D& mesh,float area,bool dual)
         h.resize(mesh.getNumFaces(),mesh.getNumFaces());
         for(unsigned int i=0;i<mesh.getNumFaces();i++)
         {
-            h.insert(i,i)=1.0f/primalV;
+            h.insert(i,i)=1.0/1.0;
         }
     }
 
     return h;
 }
 
-Eigen::SparseMatrix<float> hodge1(DECMesh2D& mesh,float area,bool dual)
+Eigen::SparseMatrix<double> hodge1(DECMesh2D& mesh,double area,bool dual)
 {
-    Eigen::SparseMatrix<float> h,d;
-    if(dual)
-    {
-        d = derivative1(mesh,true);
-    }
-    else
-    {
-        d = derivative1(mesh);
-    }
+    Eigen::SparseMatrix<double> h,d;
+
+    d = derivative1(mesh);
+
     h.resize(mesh.getNumEdges(),mesh.getNumEdges());
-    for(EdgeIterator it=mesh.getEdgeIteratorBegin();it!=mesh.getEdgeIteratorEnd();it++)
+    h.setIdentity();
+    return h;
+
+    for(EdgeIterator eit=mesh.getEdgeIteratorBegin();eit!=mesh.getEdgeIteratorEnd();eit++)
     {
-        unsigned int i = mesh.getEdgeIndex(*it);
-        float primal=area;
-        float dual=0;
-        for(Eigen::SparseMatrix<float>::InnerIterator it(d,i);it;++it)
+        unsigned int i = mesh.getEdgeIndex(*eit);
+        unsigned int dualEdges=0;
+        for(Eigen::SparseMatrix<double>::InnerIterator it(d,i);it;++it)
         {
-            dual+=primal/2;
+            dualEdges++;
         }
         if(dual)
         {
-            h.insert(i,i)=primal/dual;
+            if(dualEdges==1)
+            {
+                h.insert(i,i)=2.0;
+            }
+            else if(dualEdges==2)
+            {
+                h.insert(i,i)=1.0;
+            }
         }
         else
         {
-            h.insert(i,i)=dual/primal;
+            if(dualEdges==1)
+            {
+                h.insert(i,i)=0.5;
+            }
+            else if(dualEdges==2)
+            {
+                h.insert(i,i)=1.0;
+            }
         }
     }
     return h;
 }
 
-Eigen::SparseMatrix<float> hodge0(DECMesh2D& mesh,float area,bool dual)
+Eigen::SparseMatrix<double> hodge0(DECMesh2D& mesh,double area,bool dual)
 {
-    Eigen::SparseMatrix<float> h;
-    float primalV = 1.0f;
-    float dualV = area;
+    Eigen::SparseMatrix<double> h;
+    double primalV = 1.0f;
+    double dualV = area;
     if(dual)
     {
         h.resize(mesh.getNumFaces(),mesh.getNumFaces());
@@ -104,13 +121,13 @@ Eigen::SparseMatrix<float> hodge0(DECMesh2D& mesh,float area,bool dual)
     return h;
 }
 
-Eigen::SparseMatrix<float> derivative1(DECMesh2D& mesh,bool dual)
+Eigen::SparseMatrix<double> derivative1(DECMesh2D& mesh,bool dual)
 {
+    Eigen::SparseMatrix<double> d;
     if(dual)
     {
-        return derivative0(mesh).transpose();
+        return derivative0(mesh,false).transpose();
     }
-    Eigen::SparseMatrix<float> d;
     d.resize(mesh.getNumEdges(),mesh.getNumFaces());
     for(FaceIterator it = mesh.getFaceIteratorBegin();it!=mesh.getFaceIteratorEnd();it++)
     {
@@ -118,29 +135,31 @@ Eigen::SparseMatrix<float> derivative1(DECMesh2D& mesh,bool dual)
         unsigned int v2 = std::get<1>(*it);
         unsigned int v3 = std::get<2>(*it);
         unsigned int v4 = std::get<3>(*it);
+        unsigned int fidx = mesh.getFaceIndex(*it);
 
-        d.insert(mesh.getEdgeIndex(v1,v2),mesh.getFaceIndex(*it)) = mesh.getEdgeSignum(v1,v2);
-        d.insert(mesh.getEdgeIndex(v2,v3),mesh.getFaceIndex(*it)) = mesh.getEdgeSignum(v2,v3);
-        d.insert(mesh.getEdgeIndex(v3,v4),mesh.getFaceIndex(*it)) = mesh.getEdgeSignum(v3,v4);
-        d.insert(mesh.getEdgeIndex(v4,v1),mesh.getFaceIndex(*it)) = mesh.getEdgeSignum(v4,v1);
+        d.insert(mesh.getEdgeIndex(v1,v2),fidx) = mesh.getEdgeSignum(v1,v2);
+        d.insert(mesh.getEdgeIndex(v2,v3),fidx) = mesh.getEdgeSignum(v2,v3);
+        d.insert(mesh.getEdgeIndex(v3,v4),fidx) = mesh.getEdgeSignum(v3,v4);
+        d.insert(mesh.getEdgeIndex(v4,v1),fidx) = mesh.getEdgeSignum(v4,v1);
     }
     return d.transpose();
 }
 
-Eigen::SparseMatrix<float> derivative0(DECMesh2D& mesh,bool dual)
+Eigen::SparseMatrix<double> derivative0(DECMesh2D& mesh,bool dual)
 {
     if(dual)
     {
         return derivative1(mesh,false).transpose();
     }
-    Eigen::SparseMatrix<float> d;
+    Eigen::SparseMatrix<double> d;
     d.resize(mesh.getNumPoints(),mesh.getNumEdges());
     for(EdgeIterator it = mesh.getEdgeIteratorBegin();it!=mesh.getEdgeIteratorEnd();it++)
     {
         unsigned int v1 = std::get<0>(*it);
         unsigned int v2 = std::get<1>(*it);
-        d.insert(mesh.getPointIndex(v1),mesh.getEdgeIndex(*it)) = 1.0f;
-        d.insert(mesh.getPointIndex(v2),mesh.getEdgeIndex(*it)) = -1.0f;
+        unsigned int eidx = mesh.getEdgeIndex(*it);
+        d.insert(mesh.getPointIndex(v1),eidx) = -1.0f;
+        d.insert(mesh.getPointIndex(v2),eidx) = 1.0f;
     }
     return d.transpose();
 }
