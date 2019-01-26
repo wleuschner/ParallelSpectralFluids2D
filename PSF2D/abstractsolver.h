@@ -34,6 +34,10 @@ public:
     const Eigen::VectorXd& getVorticityField();
     double getMaxVorticity();
     double getMinVorticity();
+
+    void clearParticles();
+    void addParticle(glm::vec2 particle);
+    unsigned int getNumParticles();
 protected:
     virtual void buildLaplace()=0;
     virtual void buildAdvection()=0;
@@ -64,6 +68,8 @@ protected:
     Eigen::VectorXd basisCoeff;
     Eigen::MatrixXd velBasisField;
     Eigen::MatrixXd vortBasisField;
+
+    std::vector<glm::vec2> particles;
 private:
 };
 

@@ -3,35 +3,72 @@
 
 DECMesh2D::DECMesh2D()
 {
-
 }
 
-void DECMesh2D::addPoint(unsigned int v1)
+DECMesh2D::DECMesh2D(unsigned int resolution)
 {
-    if((points.find(v1))==points.end())
+    this->resolution = resolution;
+    faces.resize(resolution*resolution);
+    edges.resize(2*(resolution+1)*(resolution+1)-2*(resolution+1));
+    points.resize((resolution+1)*(resolution+1));
+}
+
+void DECMesh2D::addPoint(const Vertex2D& v)
+{
+    if(points[v.id].inside==GridState::UNINITIALIZED)
     {
-        points.emplace(v1);
+        points[v.id] = v;
+    }
+    else if(points[v.id].inside==GridState::OUTSIDE&&
+            v.inside==GridState::INSIDE)
+    {
+        points[v.id].inside = v.inside;
     }
 }
 
-void DECMesh2D::addEdge(unsigned int v1,unsigned int v2)
+void DECMesh2D::addEdge(const Edge2D& e)
 {
-    if((edges.find(std::make_tuple(v1,v2)))==edges.end()&&
-       (edges.find(std::make_tuple(v2,v1)))==edges.end())
+    if(edges[e.id].inside==GridState::UNINITIALIZED)
     {
-        edges.emplace(std::make_tuple(v1,v2));
-        addPoint(v1);
-        addPoint(v2);
+        edges[e.id] = e;
+        addPoint(Vertex2D(e.v1,e.inside));
+        addPoint(Vertex2D(e.v2,e.inside));
+    }
+    else if(edges[e.id].inside==GridState::OUTSIDE&&
+            e.inside==GridState::INSIDE)
+    {
+        edges[e.id].inside = e.inside;
     }
 }
 
-void DECMesh2D::addFace(unsigned int v1,unsigned int v2,unsigned int v3,unsigned int v4)
+void DECMesh2D::addFace(const Face2D& f)
 {
-    faces.emplace(std::make_tuple(v1,v2,v3,v4));
-    addEdge(v1,v2);
-    addEdge(v2,v3);
-    addEdge(v3,v4);
-    addEdge(v4,v1);
+    if(faces[f.id].inside==GridState::UNINITIALIZED)
+    {
+        faces[f.id] = f;
+        unsigned int yOfs = f.id/resolution;
+        unsigned int xOfs = f.id%resolution;
+
+        unsigned int eid1 = yOfs*(resolution+resolution+1)+resolution+xOfs;
+        unsigned int eid2 = (yOfs+1)*(resolution+resolution+1)+xOfs;
+        unsigned int eid3 = yOfs*(resolution+resolution+1)+resolution+xOfs+1;
+        unsigned int eid4 = yOfs*(resolution+resolution+1)+xOfs;
+
+        faces[f.id].e1 = eid1;
+        faces[f.id].e2 = eid2;
+        faces[f.id].e3 = eid3;
+        faces[f.id].e4 = eid4;
+
+        addEdge(Edge2D(eid1,f.v1,f.v2,f.inside));
+        addEdge(Edge2D(eid2,f.v2,f.v3,f.inside));
+        addEdge(Edge2D(eid3,f.v3,f.v4,f.inside));
+        addEdge(Edge2D(eid4,f.v4,f.v1,f.inside));
+    }
+    else if(faces[f.id].inside==GridState::OUTSIDE&&
+            f.inside==GridState::INSIDE)
+    {
+        faces[f.id].inside = f.inside;
+    }
 }
 
 PointIterator& DECMesh2D::getPointIteratorBegin()
@@ -70,110 +107,68 @@ FaceIterator& DECMesh2D::getFaceIteratorEnd()
     return facesEnd;
 }
 
-unsigned int DECMesh2D::getPointIndex(unsigned int v1)
+unsigned int DECMesh2D::getPointIndex(const Vertex2D& v)
 {
-    std::set<unsigned int>::iterator it;
-    it=points.find(v1);
-    return std::distance(points.begin(),it);
+    return v.id;
 }
 
-unsigned int DECMesh2D::getEdgeIndex(unsigned int v1,unsigned int v2)
+unsigned int DECMesh2D::getEdgeIndex(const Edge2D& e)
 {
-    std::set<std::tuple<unsigned int,unsigned int>>::iterator it;
-    if((it=edges.find(std::make_tuple(v1,v2)))==edges.end())
-    {
-        it=edges.find(std::make_tuple(v2,v1));
-    }
-    return std::distance(edges.begin(),it);
+    return e.id;
 }
 
-unsigned int DECMesh2D::getFaceIndex(unsigned int v1,unsigned int v2,unsigned int v3,unsigned int v4)
+unsigned int DECMesh2D::getFaceIndex(const Face2D& f)
 {
-    std::set<std::tuple<unsigned int,unsigned int,unsigned int,unsigned int>>::iterator it;
-    it=faces.find(std::make_tuple(v1,v2,v3,v4));
-    return std::distance(faces.begin(),it);
+    return f.id;
 }
 
-unsigned int DECMesh2D::getEdgeIndex(std::tuple<unsigned int,unsigned int> e)
+Vertex2D DECMesh2D::getPoint(unsigned int id)
 {
-    std::set<std::tuple<unsigned int,unsigned int>>::iterator it;
-    if((it=edges.find(e))==edges.end())
-    {
-        it=edges.find(std::make_tuple(std::get<1>(e),std::get<0>(e)));
-    }
-    return std::distance(edges.begin(),it);
+    return points[id];
 }
 
-unsigned int DECMesh2D::getFaceIndex(std::tuple<unsigned int,unsigned int,unsigned int,unsigned int> f)
+Edge2D DECMesh2D::getEdge(unsigned int id)
 {
-    std::set<std::tuple<unsigned int,unsigned int,unsigned int,unsigned int>>::iterator it;
-    it=faces.find(f);
-    return std::distance(faces.begin(),it);
+    return edges[id];
 }
 
-unsigned int DECMesh2D::getPoint(unsigned int v1)
+Face2D DECMesh2D::getFace(unsigned int id)
 {
-    std::set<unsigned int>::iterator it;
-    it=points.find(v1);
-    return *it;
+    return faces[id];
 }
 
-std::tuple<unsigned int,unsigned int> DECMesh2D::getEdge(unsigned int v1,unsigned int v2)
-{
-    std::set<std::tuple<unsigned int,unsigned int>>::iterator it;
-    if((it=edges.find(std::make_tuple(v1,v2)))==edges.end())
-    {
-        it=edges.find(std::make_tuple(v2,v1));
-    }
-    return *it;
-}
-
-std::tuple<unsigned int,unsigned int,unsigned int,unsigned int> DECMesh2D::getFace(unsigned int v1,unsigned int v2,unsigned int v3,unsigned int v4)
-{
-    std::set<std::tuple<unsigned int,unsigned int,unsigned int,unsigned int>>::iterator it;
-    it=faces.find(std::make_tuple(v1,v2,v3,v4));
-    return *it;
-}
-
-int DECMesh2D::getPointSignum(unsigned int v1)
+int DECMesh2D::getPointSignum(const Vertex2D& v)
 {
     return 1;
 }
 
-int DECMesh2D::getEdgeSignum(unsigned int v1,unsigned int v2)
+int DECMesh2D::getEdgeSignum(const Edge2D& e)
 {
-    std::set<std::tuple<unsigned int,unsigned int>>::iterator it;
-    if(edges.find(std::make_tuple(v1,v2))==edges.end())
-    {
-        return -1;
-    }
-    else
+    if(edges[e.id].v1==e.v1 && edges[e.id].v2==e.v2)
     {
         return 1;
     }
-}
-
-int DECMesh2D::getFaceSignum(unsigned int v1,unsigned int v2,unsigned int v3,unsigned int v4)
-{
-    return 1;
-}
-
-int DECMesh2D::getEdgeSignum(std::tuple<unsigned int,unsigned int> e)
-{
-    std::set<std::tuple<unsigned int,unsigned int>>::iterator it;
-    if(edges.find(e)==edges.end())
+    else
     {
         return -1;
     }
-    else
+}
+
+int DECMesh2D::getFaceSignum(const Face2D& f)
+{
+    return 1;
+}
+
+int DECMesh2D::getEdgeSignum(unsigned int id,unsigned int v1,unsigned int v2)
+{
+    if(edges[id].v1==v1 && edges[id].v2==v2)
     {
         return 1;
     }
-}
-
-int getFaceSignum(std::tuple<unsigned int,unsigned int,unsigned int,unsigned int> f)
-{
-    return 1;
+    else
+    {
+        return -1;
+    }
 }
 
 unsigned int DECMesh2D::getNumPoints()

@@ -1,19 +1,24 @@
 #ifndef DECMESH2D_H
 #define DECMESH2D_H
 #include<set>
+#include<vector>
+#include"face2d.h"
+#include"edge2d.h"
+#include"vertex2d.h"
 
-typedef std::set<unsigned int>::iterator PointIterator;
-typedef std::set<std::tuple<unsigned int,unsigned int>>::iterator EdgeIterator;
-typedef std::set<std::tuple<unsigned int,unsigned int,unsigned int,unsigned int>>::iterator FaceIterator;
+typedef std::vector<Vertex2D>::iterator PointIterator;
+typedef std::vector<Edge2D>::iterator EdgeIterator;
+typedef std::vector<Face2D>::iterator FaceIterator;
 
 class DECMesh2D
 {
 public:
     DECMesh2D();
+    DECMesh2D(unsigned int resolution);
 
-    void addPoint(unsigned int v1);
-    void addEdge(unsigned int v1,unsigned int v2);
-    void addFace(unsigned int v1,unsigned int v2,unsigned int v3,unsigned int v4);
+    void addPoint(const Vertex2D& v);
+    void addEdge(const Edge2D& e);
+    void addFace(const Face2D& f);
 
     PointIterator& getPointIteratorBegin();
     EdgeIterator& getEdgeIteratorBegin();
@@ -23,28 +28,26 @@ public:
     EdgeIterator& getEdgeIteratorEnd();
     FaceIterator& getFaceIteratorEnd();
 
-    unsigned int getPointIndex(unsigned int v1);
-    unsigned int getEdgeIndex(unsigned int v1,unsigned int v2);
-    unsigned int getFaceIndex(unsigned int v1,unsigned int v2,unsigned int v3,unsigned int v4);
+    unsigned int getPointIndex(const Vertex2D& v);
+    unsigned int getEdgeIndex(const Edge2D& e);
+    unsigned int getFaceIndex(const Face2D& f);
 
-    unsigned int getEdgeIndex(std::tuple<unsigned int,unsigned int> e);
-    unsigned int getFaceIndex(std::tuple<unsigned int,unsigned int,unsigned int,unsigned int> f);
+    Vertex2D getPoint(unsigned int id);
+    Edge2D getEdge(unsigned int id);
+    Face2D getFace(unsigned int id);
 
-    unsigned int getPoint(unsigned int v1);
-    std::tuple<unsigned int,unsigned int> getEdge(unsigned int v1,unsigned int v2);
-    std::tuple<unsigned int,unsigned int,unsigned int,unsigned int> getFace(unsigned int v1,unsigned int v2,unsigned int v3,unsigned int v4);
+    int getPointSignum(const Vertex2D& v);
+    int getEdgeSignum(const Edge2D& e);
+    int getFaceSignum(const Face2D& f);
 
-    int getPointSignum(unsigned int v1);
-    int getEdgeSignum(unsigned int v1,unsigned int v2);
-    int getFaceSignum(unsigned int v1,unsigned int v2,unsigned int v3,unsigned int v4);
-
-    int getEdgeSignum(std::tuple<unsigned int,unsigned int> e);
-    int getFaceSignum(std::tuple<unsigned int,unsigned int,unsigned int,unsigned int> f);
+    int getEdgeSignum(unsigned int id,unsigned int v1,unsigned int v2);
 
     unsigned int getNumPoints();
     unsigned int getNumEdges();
     unsigned int getNumFaces();
 private:
+    unsigned int resolution;
+
     PointIterator pointsBegin;
     EdgeIterator edgesBegin;
     FaceIterator facesBegin;
@@ -53,9 +56,9 @@ private:
     EdgeIterator edgesEnd;
     FaceIterator facesEnd;
 
-    std::set<unsigned int> points;
-    std::set<std::tuple<unsigned int,unsigned int>> edges;
-    std::set<std::tuple<unsigned int,unsigned int,unsigned int,unsigned int>> faces;
+    std::vector<Vertex2D> points;
+    std::vector<Edge2D> edges;
+    std::vector<Face2D> faces;
 };
 
 #endif // DECMESH2D_H

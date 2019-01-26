@@ -1,27 +1,39 @@
 #ifndef FACE2D_H
 #define FACE2D_H
-#include"edge2d.h"
-
-class Mesh2D;
-class Edge2D;
+#include "gridenums.h"
 
 class Face2D
 {
 public:
     Face2D();
-    Face2D(int v1,int v2,int v3,int v4);
+    Face2D(unsigned int id,unsigned int v1,unsigned int v2,unsigned int v3,unsigned int v4,GridState inside);
 
     union
     {
         struct
         {
-            int v1;
-            int v2;
-            int v3;
-            int v4;
+            unsigned int v1;
+            unsigned int v2;
+            unsigned int v3;
+            unsigned int v4;
         };
-        int v[4];
+        unsigned int v[4];
     };
+
+    union
+    {
+        struct
+        {
+            unsigned int e1;
+            unsigned int e2;
+            unsigned int e3;
+            unsigned int e4;
+        };
+        unsigned int e[4];
+    };
+    GridState inside;
+
+    unsigned int id;
 };
 
 #endif // FACE2D_H

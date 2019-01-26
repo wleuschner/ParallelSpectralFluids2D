@@ -128,3 +128,18 @@ void AbstractSolver::buildEigenFunctions()
         eigenFunctions[i] = e;
     }
 }
+
+void AbstractSolver::clearParticles()
+{
+    particles.clear();
+}
+
+void AbstractSolver::addParticle(glm::vec2 particle)
+{
+    particles.push_back(particle);
+}
+
+unsigned int AbstractSolver::getNumParticles()
+{
+    return particles.size();
+}

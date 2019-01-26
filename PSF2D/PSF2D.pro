@@ -54,11 +54,14 @@ HEADERS  += mainwindow.h \
     spectralfluidssolver2d.h \
     spectralfluidssolver2domp.h \
     abstractflowviswidget.h \
-    spectralfluidssolver2dcl.h
+    spectralfluidssolver2dcl.h \
+    gridenums.h
 
 LIBS += -lOpenCL -larpack -lGLU
 FORMS    += mainwindow.ui
 DEFINES = GLM_ENABLE_EXPERIMENTAL GLM_FORCE_SSE2 VIENNACL_HAVE_EIGEN
+
+QMAKE_CXXFLAGS += -std=c++17
 
 QMAKE_CXXFLAGS_RELEASE -= -O2
 QMAKE_CXXFLAGS_RELEASE += -O3 -march=native

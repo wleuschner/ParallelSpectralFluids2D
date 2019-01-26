@@ -45,7 +45,7 @@ void SpectralFluidsSolver2DOMP::buildLaplace()
 {
     Eigen::SparseMatrix<double> mat = 1.0*(derivative0(decMesh)*hodge2(decMesh,1.0,true)*derivative1(decMesh,true)*hodge1(decMesh,1.0,false));
     Eigen::SparseMatrix<double> bound = derivative1(decMesh);
-    curl = derivative1(decMesh,true)*hodge1(decMesh,1.0f,false);
+    curl = derivative1(decMesh,true)*hodge1(decMesh,1.0,false);
     for(int k=0;k<bound.outerSize();k++)
     {
         unsigned int nFaces=0;
@@ -86,31 +86,32 @@ void SpectralFluidsSolver2DOMP::buildLaplace()
         }
     }
 
-    vorticityField = Eigen::VectorXd::Zero(decMesh.getNumPoints());
+    /*vorticityField = Eigen::VectorXd::Zero(decMesh.getNumPoints());
     for(PointIterator it=decMesh.getPointIteratorBegin();it!=decMesh.getPointIteratorEnd();it++)
     {
-        unsigned int i=decMesh.getPointIndex(*it);
-        glm::dvec2 point=mesh->vertex[*it].pos;
-        if((point.x==512&&
-            (point.y==512||point.y==512)))
+        if(it->inside==GridState::INSIDE)
         {
-            vorticityField(i) = 1000*2*3.141;
+            glm::dvec2 point=mesh->vertex[it->id].pos;
+            if((point.x==512&&
+                (point.y==512||point.y==512)))
+            {
+                vorticityField(it->id) = 1000*2*3.141;
+            }
         }
     }
-    setInitialVorticityField(vorticityField);
+    setInitialVorticityField(vorticityField);*/
 
 
-    /*velocityField = Eigen::VectorXd::Zero(decMesh.getNumEdges());
+    velocityField = Eigen::VectorXd::Zero(decMesh.getNumEdges());
     for(EdgeIterator it=decMesh.getEdgeIteratorBegin();it!=decMesh.getEdgeIteratorEnd();it++)
     {
-        unsigned int i=decMesh.getEdgeIndex(*it);
-        glm::dvec2 edge=mesh->vertex[std::get<1>(*it)].pos-mesh->vertex[std::get<0>(*it)].pos;
+        glm::dvec2 edge=mesh->vertex[it->v2].pos-mesh->vertex[it->v1].pos;
         if(glm::dot(glm::dvec2(1.0,0.0),edge)>std::numeric_limits<double>::epsilon())
         {
-            velocityField(i) = -(edge.x>0?1:-1)*16.0;
+            velocityField(it->id) = -(edge.x>0?1:-1)*16.0;
         }
     }
-    setInitialVelocityField(velocityField);*/
+    setInitialVelocityField(velocityField);
 
 }
 
@@ -126,62 +127,65 @@ void SpectralFluidsSolver2DOMP::buildAdvection()
         advection[i] = Eigen::MatrixXd(decMesh.getNumPoints(),eigenValues.rows());
         advection[i].setZero();
     }
-    for(FaceIterator it=decMesh.getFaceIteratorBegin();it!=decMesh.getFaceIteratorEnd();it++)
+    for(FaceIterator fit=decMesh.getFaceIteratorBegin();fit!=decMesh.getFaceIteratorEnd();fit++)
     {
-        unsigned int v1 = std::get<0>(*it);
-        unsigned int v2 = std::get<1>(*it);
-        unsigned int v3 = std::get<2>(*it);
-        unsigned int v4 = std::get<3>(*it);
-
-        unsigned int iv1 = decMesh.getPointIndex(v1);
-        unsigned int iv2 = decMesh.getPointIndex(v2);
-        unsigned int iv3 = decMesh.getPointIndex(v3);
-        unsigned int iv4 = decMesh.getPointIndex(v4);
-
-        unsigned int ie1 = decMesh.getEdgeIndex(v1,v2);
-        unsigned int ie2 = decMesh.getEdgeIndex(v2,v3);
-        unsigned int ie3 = decMesh.getEdgeIndex(v3,v4);
-        unsigned int ie4 = decMesh.getEdgeIndex(v4,v1);
-
-        double sig1=decMesh.getEdgeSignum(v1,v2);
-        double sig2=decMesh.getEdgeSignum(v2,v3);
-        double sig3=decMesh.getEdgeSignum(v3,v4);
-        double sig4=decMesh.getEdgeSignum(v4,v1);
-
-        std::tuple<unsigned int,unsigned int> edge1 = decMesh.getEdge(v1,v2);
-        std::tuple<unsigned int,unsigned int> edge2 = decMesh.getEdge(v2,v3);
-        std::tuple<unsigned int,unsigned int> edge3 = decMesh.getEdge(v3,v4);
-        std::tuple<unsigned int,unsigned int> edge4 = decMesh.getEdge(v4,v1);
-
-        glm::dvec2 e1 = (sig1*(mesh->vertex[std::get<1>(edge1)].pos-mesh->vertex[std::get<0>(edge1)].pos));
-        glm::dvec2 e2 = (sig2*(mesh->vertex[std::get<1>(edge2)].pos-mesh->vertex[std::get<0>(edge2)].pos));
-        glm::dvec2 e3 = (sig3*(mesh->vertex[std::get<1>(edge3)].pos-mesh->vertex[std::get<0>(edge3)].pos));
-        glm::dvec2 e4 = (sig4*(mesh->vertex[std::get<1>(edge4)].pos-mesh->vertex[std::get<0>(edge4)].pos));
-
-        glm::dvec2 n1 = glm::rotate(glm::normalize(e1),glm::radians(-90.0));
-        glm::dvec2 n2 = glm::rotate(glm::normalize(e2),glm::radians(-90.0));
-        glm::dvec2 n3 = glm::rotate(glm::normalize(e3),glm::radians(-90.0));
-        glm::dvec2 n4 = glm::rotate(glm::normalize(e4),glm::radians(-90.0));
-
-
-        for(unsigned int i=0;i<nEigenFunctions;i++)
+        if(fit->inside==GridState::INSIDE)
         {
-            double vel1a = sig1*velBasisField(ie1,i);
-            double vel2a = sig2*velBasisField(ie2,i);
-            double vel3a = sig3*velBasisField(ie3,i);
-            double vel4a = sig4*velBasisField(ie4,i);
+            unsigned int v1 = fit->v1;
+            unsigned int v2 = fit->v2;
+            unsigned int v3 = fit->v3;
+            unsigned int v4 = fit->v4;
 
-            for(unsigned int j=0;j<nEigenFunctions;j++)
+            unsigned int iv1 = v1;
+            unsigned int iv2 = v2;
+            unsigned int iv3 = v3;
+            unsigned int iv4 = v4;
+
+            unsigned int ie1 = fit->e1;
+            unsigned int ie2 = fit->e2;
+            unsigned int ie3 = fit->e3;
+            unsigned int ie4 = fit->e4;
+
+            double sig1=decMesh.getEdgeSignum(fit->e1,v1,v2);
+            double sig2=decMesh.getEdgeSignum(fit->e2,v2,v3);
+            double sig3=decMesh.getEdgeSignum(fit->e3,v3,v4);
+            double sig4=decMesh.getEdgeSignum(fit->e4,v4,v1);
+
+            Edge2D edge1 = decMesh.getEdge(ie1);
+            Edge2D edge2 = decMesh.getEdge(ie2);
+            Edge2D edge3 = decMesh.getEdge(ie3);
+            Edge2D edge4 = decMesh.getEdge(ie4);
+
+            glm::dvec2 e1 = (sig1*(mesh->vertex[edge1.v2].pos-mesh->vertex[edge1.v1].pos));
+            glm::dvec2 e2 = (sig2*(mesh->vertex[edge2.v2].pos-mesh->vertex[edge2.v1].pos));
+            glm::dvec2 e3 = (sig3*(mesh->vertex[edge3.v2].pos-mesh->vertex[edge3.v1].pos));
+            glm::dvec2 e4 = (sig4*(mesh->vertex[edge4.v2].pos-mesh->vertex[edge4.v1].pos));
+
+            glm::dvec2 n1 = glm::rotate(glm::normalize(e1),glm::radians(90.0));
+            glm::dvec2 n2 = glm::rotate(glm::normalize(e2),glm::radians(90.0));
+            glm::dvec2 n3 = glm::rotate(glm::normalize(e3),glm::radians(90.0));
+            glm::dvec2 n4 = glm::rotate(glm::normalize(e4),glm::radians(90.0));
+
+
+            for(unsigned int i=0;i<nEigenFunctions;i++)
             {
-                double vel1b = sig1*velBasisField(ie1,j);
-                double vel2b = sig2*velBasisField(ie2,j);
-                double vel3b = sig3*velBasisField(ie3,j);
-                double vel4b = sig4*velBasisField(ie4,j);
+                double vel1a = sig1*velBasisField(ie1,i);
+                double vel2a = sig2*velBasisField(ie2,i);
+                double vel3a = sig3*velBasisField(ie3,i);
+                double vel4a = sig4*velBasisField(ie4,i);
 
-                wedges[i](iv2,j) += (0.25)*(vel1a*vel2b-vel1b*vel2a)*(n1.x*n2.y-n1.y*n2.x);
-                wedges[i](iv3,j) += (0.25)*(vel2a*vel3b-vel2b*vel3a)*(n2.x*n3.y-n2.y*n3.x);
-                wedges[i](iv4,j) += (0.25)*(vel3a*vel4b-vel3b*vel4a)*(n3.x*n4.y-n3.y*n4.x);
-                wedges[i](iv1,j) += (0.25)*(vel4a*vel1b-vel4b*vel1a)*(n4.x*n1.y-n4.y*n1.x);
+                for(unsigned int j=0;j<nEigenFunctions;j++)
+                {
+                    double vel1b = sig1*velBasisField(ie1,j);
+                    double vel2b = sig2*velBasisField(ie2,j);
+                    double vel3b = sig3*velBasisField(ie3,j);
+                    double vel4b = sig4*velBasisField(ie4,j);
+
+                    wedges[i](iv2,j) += (0.25)*(vel1a*vel2b-vel1b*vel2a)*(n1.x*n2.y-n1.y*n2.x);
+                    wedges[i](iv3,j) += (0.25)*(vel2a*vel3b-vel2b*vel3a)*(n2.x*n3.y-n2.y*n3.x);
+                    wedges[i](iv4,j) += (0.25)*(vel3a*vel4b-vel3b*vel4a)*(n3.x*n4.y-n3.y*n4.x);
+                    wedges[i](iv1,j) += (0.25)*(vel4a*vel1b-vel4b*vel1a)*(n4.x*n1.y-n4.y*n1.x);
+                }
             }
         }
     }

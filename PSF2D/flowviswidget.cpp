@@ -37,34 +37,37 @@ void FlowVisWidget::resizeGrid()
 
     for(FaceIterator fit=solver->getDECMesh().getFaceIteratorBegin();fit!=solver->getDECMesh().getFaceIteratorEnd();fit++)
     {
-        unsigned int iv1 = std::get<0>(*fit);
-        unsigned int iv2 = std::get<1>(*fit);
-        unsigned int iv3 = std::get<2>(*fit);
-        unsigned int iv4 = std::get<3>(*fit);
+        if(fit->inside==GridState::INSIDE)
+        {
+            unsigned int iv1 = fit->v1;
+            unsigned int iv2 = fit->v2;
+            unsigned int iv3 = fit->v3;
+            unsigned int iv4 = fit->v4;
 
-        unsigned int ie1 = decMesh.getEdgeIndex(iv1,iv2);
-        unsigned int ie2 = decMesh.getEdgeIndex(iv2,iv3);
-        unsigned int ie3 = decMesh.getEdgeIndex(iv3,iv4);
-        unsigned int ie4 = decMesh.getEdgeIndex(iv4,iv1);
+            unsigned int ie1 = fit->e1;
+            unsigned int ie2 = fit->e2;
+            unsigned int ie3 = fit->e3;
+            unsigned int ie4 = fit->e4;
 
-        Vertex2D v1 = solver->getMesh()->vertex[iv1];
-        Vertex2D v2 = solver->getMesh()->vertex[iv2];
-        Vertex2D v3 = solver->getMesh()->vertex[iv3];
-        Vertex2D v4 = solver->getMesh()->vertex[iv4];
+            Vertex2D v1 = solver->getMesh()->vertex[iv1];
+            Vertex2D v2 = solver->getMesh()->vertex[iv2];
+            Vertex2D v3 = solver->getMesh()->vertex[iv3];
+            Vertex2D v4 = solver->getMesh()->vertex[iv4];
 
-        glm::dvec2 e1 = v2.pos-v1.pos;
-        glm::dvec2 e2 = v3.pos-v2.pos;
-        glm::dvec2 e3 = v4.pos-v3.pos;
-        glm::dvec2 e4 = v1.pos-v4.pos;
+            glm::dvec2 e1 = v2.pos-v1.pos;
+            glm::dvec2 e2 = v3.pos-v2.pos;
+            glm::dvec2 e3 = v4.pos-v3.pos;
+            glm::dvec2 e4 = v1.pos-v4.pos;
 
-        glm::dvec2 center = v3.pos+0.5*(v1.pos-v3.pos);
+            glm::dvec2 center = v3.pos+0.5*(v1.pos-v3.pos);
 
-        gridEdges[ie1] = e1;
-        gridEdges[ie2] = e2;
-        gridEdges[ie3] = e3;
-        gridEdges[ie4] = e4;
+            gridEdges[ie1] = e1;
+            gridEdges[ie2] = e2;
+            gridEdges[ie3] = e3;
+            gridEdges[ie4] = e4;
 
-        faceCenters[decMesh.getFaceIndex(iv1,iv2,iv3,iv4)] = center;
+            faceCenters[fit->id] = center;
+        }
     }
 }
 
@@ -282,82 +285,85 @@ void FlowVisWidget::paintEvent(QPaintEvent *event)
         #pragma omp for
         for(unsigned int i=0;i<decMesh.getNumFaces();i++)
         {
-            unsigned int iv1 = std::get<0>(*fit);
-            unsigned int iv2 = std::get<1>(*fit);
-            unsigned int iv3 = std::get<2>(*fit);
-            unsigned int iv4 = std::get<3>(*fit);
-
-            if(vorticityVisible)
+            if(fit->inside==GridState::INSIDE)
             {
-                Vertex2D v1 = mesh->vertex[iv1];
+                unsigned int iv1 = fit->v1;
+                unsigned int iv2 = fit->v2;
+                unsigned int iv3 = fit->v3;
+                unsigned int iv4 = fit->v4;
 
-                double vort1 = (vorticityField(decMesh.getPointIndex(iv1)))/(maxVort*0.05);
-                double vort2 = (vorticityField(decMesh.getPointIndex(iv2)))/(maxVort*0.05);
-                double vort3 = (vorticityField(decMesh.getPointIndex(iv3)))/(maxVort*0.05);
-                double vort4 = (vorticityField(decMesh.getPointIndex(iv4)))/(maxVort*0.05);
-
-                glm::dvec2 ySlope = (1.0/resY)*glm::dvec2(vort2-vort1,vort3-vort4);
-                glm::dvec2 yBegin = glm::dvec2(vort1,vort4);
-                for(unsigned int y=0;y<resY;y++)
+                if(vorticityVisible)
                 {
-                    unsigned int posY = v1.pos.y+y;
-                    unsigned int *startLine = rotationFieldPixels+((posY)*imageWidth+static_cast<unsigned int>(v1.pos.x));
+                    Vertex2D v1 = mesh->vertex[iv1];
 
-                    double xSlope = (1.0f/resX)*(yBegin.y-yBegin.x);
-                    double xBegin = yBegin.x;
-                    for(unsigned int x=0;x<resX;x++)
+                    double vort1 = (vorticityField(iv1))/(maxVort*0.05);
+                    double vort2 = (vorticityField(iv2))/(maxVort*0.05);
+                    double vort3 = (vorticityField(iv3))/(maxVort*0.05);
+                    double vort4 = (vorticityField(iv4))/(maxVort*0.05);
+
+                    glm::dvec2 ySlope = (1.0/resY)*glm::dvec2(vort2-vort1,vort3-vort4);
+                    glm::dvec2 yBegin = glm::dvec2(vort1,vort4);
+                    for(unsigned int y=0;y<resY;y++)
                     {
-                        double c = xBegin;
-                        c = glm::clamp(c,-1.0,1.0);
-                        glm::ivec3 color;
-                        if(c>0)
+                        unsigned int posY = v1.pos.y+y;
+                        unsigned int *startLine = rotationFieldPixels+((posY)*imageWidth+static_cast<unsigned int>(v1.pos.x));
+
+                        double xSlope = (1.0f/resX)*(yBegin.y-yBegin.x);
+                        double xBegin = yBegin.x;
+                        for(unsigned int x=0;x<resX;x++)
                         {
-                            color = glm::mix(glm::ivec3(255,255,255),glm::ivec3(0,0,255),c);
+                            double c = xBegin;
+                            c = glm::clamp(c,-1.0,1.0);
+                            glm::ivec3 color;
+                            if(c>0)
+                            {
+                                color = glm::mix(glm::ivec3(255,255,255),glm::ivec3(0,0,255),c);
+                            }
+                            else
+                            {
+                                color = glm::mix(glm::ivec3(255,255,255),glm::ivec3(0,255,0),-c);
+                            }
+                            *startLine = qRgb(color.b,color.g,color.r);
+                            startLine++;
+                            xBegin += xSlope;
                         }
-                        else
-                        {
-                            color = glm::mix(glm::ivec3(255,255,255),glm::ivec3(0,255,0),-c);
-                        }
-                        *startLine = qRgb(color.b,color.g,color.r);
-                        startLine++;
-                        xBegin += xSlope;
+                        yBegin += ySlope;
                     }
-                    yBegin += ySlope;
                 }
-            }
 
-            if(velocityVisible)
-            {
-                unsigned int ie1 = decMesh.getEdgeIndex(iv1,iv2);
-                unsigned int ie2 = decMesh.getEdgeIndex(iv2,iv3);
-                unsigned int ie3 = decMesh.getEdgeIndex(iv3,iv4);
-                unsigned int ie4 = decMesh.getEdgeIndex(iv4,iv1);
-
-                unsigned int fidx = decMesh.getFaceIndex(iv1,iv2,iv3,iv4);
-
-                glm::dvec2 e1 = gridEdges[ie1];
-                glm::dvec2 e2 = gridEdges[ie2];
-                glm::dvec2 e3 = gridEdges[ie3];
-                glm::dvec2 e4 = gridEdges[ie4];
-
-                double s1=decMesh.getEdgeSignum(iv1,iv2);
-                double s2=decMesh.getEdgeSignum(iv2,iv3);
-                double s3=decMesh.getEdgeSignum(iv3,iv4);
-                double s4=decMesh.getEdgeSignum(iv4,iv1);
-
-                glm::dvec2 vel = glm::rotate(0.5*(s1*velocityField(ie1)*glm::normalize(s1*e1)+s3*velocityField(ie3)*glm::normalize(s3*e3))+
-                                            0.5*(s2*velocityField(ie2)*glm::normalize(s2*e2)+s4*velocityField(ie4)*glm::normalize(s4*e4)),
-                                            glm::radians(-90.0));
-                if(velocityNormalizationState==UNIT_NORMALIZATION)
+                if(velocityVisible)
                 {
-                    vel = (mesh->getResolution()/2.0)*glm::normalize(vel);
-                }
-                else if(velocityNormalizationState==TIMESTEP_NORMALIZATION)
-                {
-                    vel = solver->getTimestep()*vel;
-                }
+                    unsigned int ie1 = fit->e1;
+                    unsigned int ie2 = fit->e2;
+                    unsigned int ie3 = fit->e3;
+                    unsigned int ie4 = fit->e4;
 
-                velocities[fidx] = vel;
+                    unsigned int fidx = fit->id;
+
+                    glm::dvec2 e1 = gridEdges[ie1];
+                    glm::dvec2 e2 = gridEdges[ie2];
+                    glm::dvec2 e3 = gridEdges[ie3];
+                    glm::dvec2 e4 = gridEdges[ie4];
+
+                    double s1=decMesh.getEdgeSignum(fit->e1,iv1,iv2);
+                    double s2=decMesh.getEdgeSignum(fit->e2,iv2,iv3);
+                    double s3=decMesh.getEdgeSignum(fit->e3,iv3,iv4);
+                    double s4=decMesh.getEdgeSignum(fit->e4,iv4,iv1);
+
+                    glm::dvec2 vel = glm::rotate(0.5*(s1*velocityField(ie1)*glm::normalize(s1*e1)+s3*velocityField(ie3)*glm::normalize(s3*e3))+
+                                                0.5*(s2*velocityField(ie2)*glm::normalize(s2*e2)+s4*velocityField(ie4)*glm::normalize(s4*e4)),
+                                                glm::radians(90.0));
+                    if(velocityNormalizationState==UNIT_NORMALIZATION)
+                    {
+                        vel = (mesh->getResolution()/2.0)*glm::normalize(vel);
+                    }
+                    else if(velocityNormalizationState==TIMESTEP_NORMALIZATION)
+                    {
+                        vel = solver->getTimestep()*vel;
+                    }
+
+                    velocities[fidx] = vel;
+                }
             }
             std::advance(fit,1);
         }
@@ -365,37 +371,40 @@ void FlowVisWidget::paintEvent(QPaintEvent *event)
 
     for(FaceIterator fit=solver->getDECMesh().getFaceIteratorBegin();fit!=solver->getDECMesh().getFaceIteratorEnd();fit++)
     {
-        painter.setPen(black);
-        unsigned int iv1 = std::get<0>(*fit);
-        unsigned int iv2 = std::get<1>(*fit);
-        unsigned int iv3 = std::get<2>(*fit);
-        unsigned int iv4 = std::get<3>(*fit);
-
-        unsigned int fidx = decMesh.getFaceIndex(iv1,iv2,iv3,iv4);
-
-        Vertex2D v1 = mesh->vertex[iv1];
-        Vertex2D v2 = mesh->vertex[iv2];
-        Vertex2D v3 = mesh->vertex[iv3];
-        Vertex2D v4 = mesh->vertex[iv4];
-
-        if(gridVisible)
+        if(fit->inside==GridState::INSIDE)
         {
-            painter.drawLine(v1.pos.x,v1.pos.y,v2.pos.x,v2.pos.y);
-            painter.drawLine(v2.pos.x,v2.pos.y,v3.pos.x,v3.pos.y);
-            painter.drawLine(v3.pos.x,v3.pos.y,v4.pos.x,v4.pos.y);
-            painter.drawLine(v4.pos.x,v4.pos.y,v1.pos.x,v1.pos.y);
-        }
+            painter.setPen(black);
+            unsigned int iv1 = fit->v1;
+            unsigned int iv2 = fit->v2;
+            unsigned int iv3 = fit->v3;
+            unsigned int iv4 = fit->v4;
 
-        if(velocityVisible)
-        {
-            glm::dvec2 faceCenter = faceCenters[fidx];
-            glm::dvec2 vel = velocities[fidx];
+            unsigned int fidx = fit->id;
 
-            painter.drawEllipse(faceCenter.x-4,faceCenter.y-4,8.0,8.0);
+            Vertex2D v1 = mesh->vertex[iv1];
+            Vertex2D v2 = mesh->vertex[iv2];
+            Vertex2D v3 = mesh->vertex[iv3];
+            Vertex2D v4 = mesh->vertex[iv4];
 
-            glm::dvec2 dir = faceCenter+vel;
-            painter.setPen(red);
-            painter.drawLine(faceCenter.x,faceCenter.y,dir.x,dir.y);
+            if(gridVisible)
+            {
+                painter.drawLine(v1.pos.x,v1.pos.y,v2.pos.x,v2.pos.y);
+                painter.drawLine(v2.pos.x,v2.pos.y,v3.pos.x,v3.pos.y);
+                painter.drawLine(v3.pos.x,v3.pos.y,v4.pos.x,v4.pos.y);
+                painter.drawLine(v4.pos.x,v4.pos.y,v1.pos.x,v1.pos.y);
+            }
+
+            if(velocityVisible)
+            {
+                glm::dvec2 faceCenter = faceCenters[fidx];
+                glm::dvec2 vel = velocities[fidx];
+
+                painter.drawEllipse(faceCenter.x-4,faceCenter.y-4,8.0,8.0);
+
+                glm::dvec2 dir = faceCenter+vel;
+                painter.setPen(red);
+                painter.drawLine(faceCenter.x,faceCenter.y,dir.x,dir.y);
+            }
         }
     }
     painter.end();
