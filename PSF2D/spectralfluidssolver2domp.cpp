@@ -37,12 +37,13 @@ void SpectralFluidsSolver2DOMP::integrate()
 
     velocityField = velBasisField*basisCoeff;
 
-    for(std::vector<glm::dvec2>::iterator it=particles.begin();it!=particles.end();it++)
+    //#pragma omp parallel for
+    for(std::vector<glm::dvec2>::iterator it=particles.begin();it<particles.end();it++)
     {
-        unsigned int yOfsMinus = static_cast<unsigned int>(it->y)/resolution;
-        unsigned int yOfsPlus = static_cast<unsigned int>(it->y)/resolution;
-        unsigned int xOfsMinus = static_cast<unsigned int>(it->x)/resolution;
-        unsigned int xOfsPlus = static_cast<unsigned int>(it->x)/resolution;
+        /*unsigned int yOfsMinus = static_cast<unsigned int>(it->y-0.5*resolution)/resolution;
+        unsigned int yOfsPlus = static_cast<unsigned int>(it->y+0.5*resolution)/resolution;
+        unsigned int xOfsMinus = static_cast<unsigned int>(it->x-0.5*resolution)/resolution;
+        unsigned int xOfsPlus = static_cast<unsigned int>(it->x+0.5*resolution)/resolution;
 
         Face2D f1 = decMesh.getFace(yOfsMinus*((mesh->getWidth()/resolution)+2)+xOfsMinus);
         Face2D f2 = decMesh.getFace(yOfsPlus*((mesh->getWidth()/resolution)+2)+xOfsMinus);
@@ -80,11 +81,79 @@ void SpectralFluidsSolver2DOMP::integrate()
         double yVel = glm::mix(yVelYInterp.x,yVelYInterp.y,particleNormalizedY.x);
 
         glm::dvec2 vel = glm::dvec2(xVel,yVel);
-        std::cout<<"PARTICLE: "<<it->x<<" "<<it->y<<std::endl;
-        std::cout<<"ORIGIN: "<<cxf1.x<<" "<<cxf1.y<<std::endl;
+        //std::cout<<"PARTICLE: "<<it->x<<" "<<it->y<<std::endl;
+        //std::cout<<"ORIGIN: "<<cxf1.x<<" "<<cxf1.y<<std::endl;
+        //std::cout<<"X:"<<particleNormalizedX.x<<" "<<particleNormalizedX.y<<std::endl;
+        //std::cout<<"Y:"<<particleNormalizedY.x<<" "<<particleNormalizedY.y<<std::endl;
+        (*it) = (*it)+timeStep*vel;*/
+
+
+        unsigned int yOfs = static_cast<unsigned int>(it->y)/resolution;
+        unsigned int xOfs = static_cast<unsigned int>(it->x)/resolution;
+
+        unsigned int yOfsMinus = static_cast<unsigned int>(it->y-resolution/2)/resolution;
+        unsigned int yOfsPlus = static_cast<unsigned int>(it->y+resolution/2)/resolution;
+        unsigned int xOfsMinus = static_cast<unsigned int>(it->x-resolution/2)/resolution;
+        unsigned int xOfsPlus = static_cast<unsigned int>(it->x+resolution/2)/resolution;
+
+        Face2D f1x = decMesh.getFace(yOfsMinus*((mesh->getWidth()/resolution)+2)+xOfs);
+        Face2D f2x = decMesh.getFace(yOfsPlus*((mesh->getWidth()/resolution)+2)+xOfs);
+        Face2D f1y = decMesh.getFace(yOfs*((mesh->getWidth()/resolution)+2)+xOfsMinus);
+        Face2D f2y = decMesh.getFace(yOfs*((mesh->getWidth()/resolution)+2)+xOfsPlus);
+
+
+        glm::dvec2 cf1x = mesh->vertex[f1x.v1].pos+0.5*(mesh->vertex[f1x.v2].pos-mesh->vertex[f1x.v1].pos);
+        glm::dvec2 cf2x = mesh->vertex[f2x.v1].pos+0.5*(mesh->vertex[f2x.v2].pos-mesh->vertex[f2x.v1].pos);
+        glm::dvec2 cf1y = mesh->vertex[f1y.v4].pos+0.5*(mesh->vertex[f1y.v1].pos-mesh->vertex[f1y.v4].pos);
+        glm::dvec2 cf2y = mesh->vertex[f2y.v4].pos+0.5*(mesh->vertex[f2y.v1].pos-mesh->vertex[f2y.v4].pos);
+
+        double vel1x = decMesh.getEdgeSignum(f1x.e1,f1x.v1,f1x.v2)*velocityField(f1x.e1);
+        double vel2x = decMesh.getEdgeSignum(f2x.e1,f2x.v1,f2x.v2)*velocityField(f2x.e1);
+        double vel3x = -decMesh.getEdgeSignum(f1x.e3,f1x.v3,f1x.v4)*velocityField(f1x.e3);
+        double vel4x = -decMesh.getEdgeSignum(f2x.e3,f2x.v3,f2x.v4)*velocityField(f2x.e3);
+
+        double vel1y = decMesh.getEdgeSignum(f1y.e4,f1y.v4,f1y.v1)*velocityField(f1y.e4);
+        double vel3y = decMesh.getEdgeSignum(f2y.e4,f2y.v4,f2y.v1)*velocityField(f2y.e4);
+        double vel2y = -decMesh.getEdgeSignum(f1y.e2,f1y.v2,f1y.v3)*velocityField(f1y.e2);
+        double vel4y = -decMesh.getEdgeSignum(f2y.e2,f2y.v2,f2y.v3)*velocityField(f2y.e2);
+
+        glm::dvec2 particleNormalizedX;
+        glm::dvec2 particleNormalizedY;
+        glm::dvec2 vel;
+
+        if(cf1x.y<cf2x.y)
+        {
+            particleNormalizedX = (1.0/resolution)*((*it)-(cf1x));
+            glm::dvec2 yVelXInterp = glm::mix(glm::dvec2(vel1x,vel3x),glm::dvec2(vel2x,vel4x),particleNormalizedX.y);
+            vel.x = glm::mix(yVelXInterp.x,yVelXInterp.y,particleNormalizedX.x);
+        }
+        else
+        {
+            particleNormalizedX = (1.0/resolution)*((*it)-(cf2x));
+            glm::dvec2 yVelXInterp = glm::mix(glm::dvec2(vel2x,vel4x),glm::dvec2(vel1x,vel3x),particleNormalizedX.y);
+            vel.x = glm::mix(yVelXInterp.x,yVelXInterp.y,particleNormalizedX.x);
+        }
+
+        if(cf1y.x<cf2y.x)
+        {
+            particleNormalizedY = (1.0/resolution)*((*it)-(cf1y));
+            glm::dvec2 yVelYInterp = glm::mix(glm::dvec2(vel1y,vel3y),glm::dvec2(vel2y,vel4y),particleNormalizedY.y);
+            vel.y = glm::mix(yVelYInterp.x,yVelYInterp.y,particleNormalizedY.x);
+        }
+        else
+        {
+            particleNormalizedY = (1.0/resolution)*((*it)-(cf2y));
+            glm::dvec2 yVelYInterp = glm::mix(glm::dvec2(vel2y,vel4y),glm::dvec2(vel1y,vel3y),particleNormalizedY.y);
+            vel.y = glm::mix(yVelYInterp.x,yVelYInterp.y,particleNormalizedY.x);
+        }
+
+
+        /*std::cout<<"PARTICLE: "<<it->x<<" "<<it->y<<std::endl;
+        std::cout<<"ORIGIN: "<<cf1x.x<<" "<<cf1x.y<<std::endl;
         std::cout<<"X:"<<particleNormalizedX.x<<" "<<particleNormalizedX.y<<std::endl;
-        std::cout<<"Y:"<<particleNormalizedY.x<<" "<<particleNormalizedY.y<<std::endl;
+        std::cout<<"Y:"<<particleNormalizedY.x<<" "<<particleNormalizedY.y<<std::endl;*/
         (*it) = (*it)+timeStep*vel;
+
 
         /*unsigned int yOfs = static_cast<unsigned int>(it->y)/resolution;
         unsigned int xOfs = static_cast<unsigned int>(it->x)/resolution;
@@ -176,7 +245,7 @@ void SpectralFluidsSolver2DOMP::buildLaplace()
         }
     }
 
-    /*vorticityField = Eigen::VectorXd::Zero(decMesh.getNumPoints());
+    vorticityField = Eigen::VectorXd::Zero(decMesh.getNumPoints());
     for(PointIterator it=decMesh.getPointIteratorBegin();it!=decMesh.getPointIteratorEnd();it++)
     {
         if(it->inside==GridState::INSIDE)
@@ -189,10 +258,10 @@ void SpectralFluidsSolver2DOMP::buildLaplace()
             }
         }
     }
-    setInitialVorticityField(vorticityField);*/
+    setInitialVorticityField(vorticityField);
 
 
-    velocityField = Eigen::VectorXd::Zero(decMesh.getNumEdges());
+    /*velocityField = Eigen::VectorXd::Zero(decMesh.getNumEdges());
     for(EdgeIterator it=decMesh.getEdgeIteratorBegin();it!=decMesh.getEdgeIteratorEnd();it++)
     {
         if(it->inside==GridState::INSIDE)
@@ -204,7 +273,7 @@ void SpectralFluidsSolver2DOMP::buildLaplace()
             }
         }
     }
-    setInitialVelocityField(velocityField);
+    setInitialVelocityField(velocityField);*/
 
 }
 

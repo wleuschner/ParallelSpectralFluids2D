@@ -62,6 +62,22 @@ DECMesh2D Mesh2D::voxelize()
                 iv2 = y*(width/resolution+1+2)+x+1; //DOWN RIGHT Vert
                 iv3 = (y+1)*(width/resolution+1+2)+x; //UP LEFT vert
                 iv4 = (y+1)*(width/resolution+1+2)+x+1; //UP RIGHT vert*/
+
+                Vertex2D v1,v2,v3,v4;
+                v1.pos.x = x*resolution;
+                v1.pos.y = y*resolution;
+                v2.pos.x = (x+1)*resolution;
+                v2.pos.y = y*resolution;
+                v3.pos.x = x*resolution;
+                v3.pos.y = (y+1)*resolution;
+                v4.pos.x = (x+1)*resolution;
+                v4.pos.y = (y+1)*resolution;
+
+                vertex[iv1] = v1;
+                vertex[iv2] = v2;
+                vertex[iv3] = v3;
+                vertex[iv4] = v4;
+
                 decMesh.addFace(Face2D(y*(width/resolution+2)+x,iv1,iv3,iv4,iv2,GridState::OUTSIDE));
             }
             else
