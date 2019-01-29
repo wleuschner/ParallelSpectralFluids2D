@@ -37,7 +37,7 @@ void SpectralFluidsSolver2DOMP::integrate()
 
     velocityField = velBasisField*basisCoeff;
 
-    //#pragma omp parallel for
+    #pragma omp parallel for
     for(std::vector<glm::dvec2>::iterator it=particles.begin();it<particles.end();it++)
     {
         /*unsigned int yOfsMinus = static_cast<unsigned int>(it->y-0.5*resolution)/resolution;
