@@ -32,6 +32,7 @@ protected:
     void resizeGL(int w, int h);
     void paintEvent(QPaintEvent *event);
     void keyPressEvent(QKeyEvent *event);
+    void mouseMoveEvent(QMouseEvent* event);
 signals:
 
 public slots:
@@ -47,6 +48,7 @@ private:
     std::vector<glm::dvec2> gridEdges;
 
     double meshAlpha;
+    bool particlesVisible;
     bool vorticityVisible;
     bool velocityVisible;
     bool gridVisible;

@@ -35,12 +35,14 @@ public:
     double getMaxVorticity();
     double getMinVorticity();
 
+    const std::vector<glm::dvec2>& getParticles();
     void clearParticles();
-    void addParticle(glm::vec2 particle);
+    void addParticle(glm::dvec2 particle);
     unsigned int getNumParticles();
 protected:
     virtual void buildLaplace()=0;
     virtual void buildAdvection()=0;
+//    virtual void integrateParticles()=0;
 
     void buildEigenFunctions();
 
@@ -69,7 +71,7 @@ protected:
     Eigen::MatrixXd velBasisField;
     Eigen::MatrixXd vortBasisField;
 
-    std::vector<glm::vec2> particles;
+    std::vector<glm::dvec2> particles;
 private:
 };
 

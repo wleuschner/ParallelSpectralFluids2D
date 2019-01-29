@@ -36,6 +36,96 @@ void SpectralFluidsSolver2DOMP::integrate()
     }
 
     velocityField = velBasisField*basisCoeff;
+
+    for(std::vector<glm::dvec2>::iterator it=particles.begin();it!=particles.end();it++)
+    {
+        unsigned int yOfsMinus = static_cast<unsigned int>(it->y)/resolution;
+        unsigned int yOfsPlus = static_cast<unsigned int>(it->y)/resolution;
+        unsigned int xOfsMinus = static_cast<unsigned int>(it->x)/resolution;
+        unsigned int xOfsPlus = static_cast<unsigned int>(it->x)/resolution;
+
+        Face2D f1 = decMesh.getFace(yOfsMinus*((mesh->getWidth()/resolution)+2)+xOfsMinus);
+        Face2D f2 = decMesh.getFace(yOfsPlus*((mesh->getWidth()/resolution)+2)+xOfsMinus);
+        Face2D f3 = decMesh.getFace(yOfsMinus*((mesh->getWidth()/resolution)+2)+xOfsPlus);
+        Face2D f4 = decMesh.getFace(yOfsPlus*((mesh->getWidth()/resolution)+2)+xOfsPlus);
+
+
+        glm::dvec2 cxf1 = mesh->vertex[f1.v1].pos+0.5*(mesh->vertex[f1.v2].pos-mesh->vertex[f1.v1].pos);
+        glm::dvec2 cxf2 = mesh->vertex[f2.v1].pos+0.5*(mesh->vertex[f2.v2].pos-mesh->vertex[f2.v1].pos);
+        glm::dvec2 cxf3 = mesh->vertex[f3.v1].pos+0.5*(mesh->vertex[f3.v2].pos-mesh->vertex[f3.v1].pos);
+        glm::dvec2 cxf4 = mesh->vertex[f4.v1].pos+0.5*(mesh->vertex[f4.v2].pos-mesh->vertex[f4.v1].pos);
+
+        double vel1x = decMesh.getEdgeSignum(f1.e1,f1.v1,f1.v2)*velocityField(f1.e1);
+        double vel2x = decMesh.getEdgeSignum(f2.e1,f2.v1,f2.v2)*velocityField(f2.e1);
+        double vel3x = decMesh.getEdgeSignum(f3.e1,f3.v1,f3.v2)*velocityField(f3.e1);
+        double vel4x = decMesh.getEdgeSignum(f4.e1,f4.v1,f4.v2)*velocityField(f4.e1);
+
+        glm::dvec2 cyf1 = mesh->vertex[f1.v4].pos+0.5*(mesh->vertex[f1.v1].pos-mesh->vertex[f1.v4].pos);
+        glm::dvec2 cyf2 = mesh->vertex[f2.v4].pos+0.5*(mesh->vertex[f2.v1].pos-mesh->vertex[f2.v4].pos);
+        glm::dvec2 cyf3 = mesh->vertex[f3.v4].pos+0.5*(mesh->vertex[f3.v1].pos-mesh->vertex[f3.v4].pos);
+        glm::dvec2 cyf4 = mesh->vertex[f4.v4].pos+0.5*(mesh->vertex[f4.v1].pos-mesh->vertex[f4.v4].pos);
+
+        double vel1y = decMesh.getEdgeSignum(f1.e4,f1.v4,f1.v1)*velocityField(f1.e4);
+        double vel2y = decMesh.getEdgeSignum(f2.e4,f2.v4,f2.v1)*velocityField(f2.e4);
+        double vel3y = decMesh.getEdgeSignum(f3.e4,f3.v4,f3.v1)*velocityField(f3.e4);
+        double vel4y = decMesh.getEdgeSignum(f4.e4,f4.v4,f4.v1)*velocityField(f4.e4);
+
+        glm::dvec2 particleNormalizedX = (1.0/resolution)*((*it)-(cxf1));
+        glm::dvec2 particleNormalizedY = (1.0/resolution)*((*it)-(cyf1));
+
+        glm::dvec2 yVelXInterp = glm::mix(glm::dvec2(vel1x,vel3x),glm::dvec2(vel2x,vel4x),particleNormalizedX.y);
+        double xVel = glm::mix(yVelXInterp.x,yVelXInterp.y,particleNormalizedX.x);
+
+        glm::dvec2 yVelYInterp = glm::mix(glm::dvec2(vel1y,vel3y),glm::dvec2(vel2y,vel4y),particleNormalizedY.y);
+        double yVel = glm::mix(yVelYInterp.x,yVelYInterp.y,particleNormalizedY.x);
+
+        glm::dvec2 vel = glm::dvec2(xVel,yVel);
+        std::cout<<"PARTICLE: "<<it->x<<" "<<it->y<<std::endl;
+        std::cout<<"ORIGIN: "<<cxf1.x<<" "<<cxf1.y<<std::endl;
+        std::cout<<"X:"<<particleNormalizedX.x<<" "<<particleNormalizedX.y<<std::endl;
+        std::cout<<"Y:"<<particleNormalizedY.x<<" "<<particleNormalizedY.y<<std::endl;
+        (*it) = (*it)+timeStep*vel;
+
+        /*unsigned int yOfs = static_cast<unsigned int>(it->y)/resolution;
+        unsigned int xOfs = static_cast<unsigned int>(it->x)/resolution;
+        Face2D face = decMesh.getFace(yOfs*((mesh->getWidth()/resolution)+2)+xOfs);
+
+        if(face.inside==GridState::INSIDE)
+        {
+            unsigned int iv1 = face.v1;
+            unsigned int iv2 = face.v2;
+            unsigned int iv3 = face.v3;
+            unsigned int iv4 = face.v4;
+
+            unsigned int ie1 = face.e1;
+            unsigned int ie2 = face.e2;
+            unsigned int ie3 = face.e3;
+            unsigned int ie4 = face.e4;
+
+            Vertex2D v1 = getMesh()->vertex[iv1];
+            Vertex2D v2 = getMesh()->vertex[iv2];
+            Vertex2D v3 = getMesh()->vertex[iv3];
+            Vertex2D v4 = getMesh()->vertex[iv4];
+
+            glm::dvec2 e1 = v2.pos-v1.pos;
+            glm::dvec2 e2 = v3.pos-v2.pos;
+            glm::dvec2 e3 = v4.pos-v3.pos;
+            glm::dvec2 e4 = v1.pos-v4.pos;
+
+            unsigned int fidx = face.id;
+
+            double s1=decMesh.getEdgeSignum(face.e1,iv1,iv2);
+            double s2=decMesh.getEdgeSignum(face.e2,iv2,iv3);
+            double s3=decMesh.getEdgeSignum(face.e3,iv3,iv4);
+            double s4=decMesh.getEdgeSignum(face.e4,iv4,iv1);
+
+            glm::dvec2 vel = glm::rotate(0.5*(s1*velocityField(ie1)*glm::normalize(e1)+s3*velocityField(ie3)*glm::normalize(e3))+
+                                        0.5*(s2*velocityField(ie2)*glm::normalize(e2)+s4*velocityField(ie4)*glm::normalize(e4)),
+                                        glm::radians(-90.0));
+
+            (*it) = (*it)+timeStep*vel;
+        }*/
+    }
     vorticityField = curl*velocityField;
     maxRotation = vorticityField.cwiseAbs().maxCoeff();
     minRotation = vorticityField.minCoeff();
@@ -43,7 +133,7 @@ void SpectralFluidsSolver2DOMP::integrate()
 
 void SpectralFluidsSolver2DOMP::buildLaplace()
 {
-    Eigen::SparseMatrix<double> mat = 1.0*(derivative0(decMesh)*hodge2(decMesh,1.0,true)*derivative1(decMesh,true)*hodge1(decMesh,1.0,false));
+    Eigen::SparseMatrix<double> mat = -1.0*(derivative0(decMesh)*hodge2(decMesh,1.0,true)*derivative1(decMesh,true)*hodge1(decMesh,1.0,false));
     Eigen::SparseMatrix<double> bound = derivative1(decMesh);
     curl = derivative1(decMesh,true)*hodge1(decMesh,1.0,false);
     for(int k=0;k<bound.outerSize();k++)
@@ -55,13 +145,13 @@ void SpectralFluidsSolver2DOMP::buildLaplace()
         }
         if(nFaces!=2)
         {
-            //mat.prune([k](int i,int j,double v){return !(i==k||j==k);});
+            mat.prune([k](int i,int j,double v){return !(i==k||j==k);});
         }
     }
     mat.pruned();
 
     bool decompositionDone=false;
-    double omega = 0.175;
+    double omega = -0.1;
     while(!decompositionDone)
     {
         try
@@ -105,10 +195,13 @@ void SpectralFluidsSolver2DOMP::buildLaplace()
     velocityField = Eigen::VectorXd::Zero(decMesh.getNumEdges());
     for(EdgeIterator it=decMesh.getEdgeIteratorBegin();it!=decMesh.getEdgeIteratorEnd();it++)
     {
-        glm::dvec2 edge=mesh->vertex[it->v2].pos-mesh->vertex[it->v1].pos;
-        if(glm::dot(glm::dvec2(1.0,0.0),edge)>std::numeric_limits<double>::epsilon())
+        if(it->inside==GridState::INSIDE)
         {
-            velocityField(it->id) = -(edge.x>0?1:-1)*16.0;
+            glm::dvec2 edge=mesh->vertex[it->v2].pos-mesh->vertex[it->v1].pos;
+            if(glm::dot(glm::dvec2(1.0,0.0),edge)>std::numeric_limits<double>::epsilon())
+            {
+                velocityField(it->id) = (edge.x>0?1:-1)*8.0;
+            }
         }
     }
     setInitialVelocityField(velocityField);
@@ -161,10 +254,10 @@ void SpectralFluidsSolver2DOMP::buildAdvection()
             glm::dvec2 e3 = (sig3*(mesh->vertex[edge3.v2].pos-mesh->vertex[edge3.v1].pos));
             glm::dvec2 e4 = (sig4*(mesh->vertex[edge4.v2].pos-mesh->vertex[edge4.v1].pos));
 
-            glm::dvec2 n1 = glm::rotate(glm::normalize(e1),glm::radians(90.0));
-            glm::dvec2 n2 = glm::rotate(glm::normalize(e2),glm::radians(90.0));
-            glm::dvec2 n3 = glm::rotate(glm::normalize(e3),glm::radians(90.0));
-            glm::dvec2 n4 = glm::rotate(glm::normalize(e4),glm::radians(90.0));
+            glm::dvec2 n1 = glm::rotate(glm::normalize(e1),glm::radians(-90.0));
+            glm::dvec2 n2 = glm::rotate(glm::normalize(e2),glm::radians(-90.0));
+            glm::dvec2 n3 = glm::rotate(glm::normalize(e3),glm::radians(-90.0));
+            glm::dvec2 n4 = glm::rotate(glm::normalize(e4),glm::radians(-90.0));
 
 
             for(unsigned int i=0;i<nEigenFunctions;i++)

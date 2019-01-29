@@ -5,8 +5,9 @@ DECMesh2D::DECMesh2D()
 {
 }
 
-DECMesh2D::DECMesh2D(unsigned int resolution)
+DECMesh2D::DECMesh2D(unsigned int resolution,unsigned int voxelSize)
 {
+    this->voxelSize = voxelSize;
     this->resolution = resolution;
     faces.resize(resolution*resolution);
     edges.resize(2*(resolution+1)*(resolution+1)-2*(resolution+1));
@@ -122,6 +123,13 @@ unsigned int DECMesh2D::getFaceIndex(const Face2D& f)
     return f.id;
 }
 
+bool DECMesh2D::isPointInside(const glm::vec2& point)
+{
+    unsigned int yOfs = static_cast<unsigned int>(point.y)/voxelSize;
+    unsigned int xOfs = static_cast<unsigned int>(point.x)/voxelSize;
+    return faces[yOfs*resolution+xOfs].inside==GridState::INSIDE;
+}
+
 Vertex2D DECMesh2D::getPoint(unsigned int id)
 {
     return points[id];
@@ -169,6 +177,15 @@ int DECMesh2D::getEdgeSignum(unsigned int id,unsigned int v1,unsigned int v2)
     {
         return -1;
     }
+}
+
+std::tuple<unsigned int,unsigned int,
+           unsigned int,unsigned int> DECMesh2D::getIntepolationIndices(glm::vec2 coords)
+{
+    unsigned int left = static_cast<unsigned int>(coords.x-0.5f);
+    unsigned int right = static_cast<unsigned int>(coords.x+0.5f);
+    unsigned int top = static_cast<unsigned int>(coords.y+0.5f);
+    unsigned int bottom = static_cast<unsigned int>(coords.y-0.5f);
 }
 
 unsigned int DECMesh2D::getNumPoints()

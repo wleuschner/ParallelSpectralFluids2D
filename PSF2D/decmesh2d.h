@@ -14,7 +14,7 @@ class DECMesh2D
 {
 public:
     DECMesh2D();
-    DECMesh2D(unsigned int resolution);
+    DECMesh2D(unsigned int resolution,unsigned int voxelSize);
 
     void addPoint(const Vertex2D& v);
     void addEdge(const Edge2D& e);
@@ -32,6 +32,8 @@ public:
     unsigned int getEdgeIndex(const Edge2D& e);
     unsigned int getFaceIndex(const Face2D& f);
 
+    bool isPointInside(const glm::vec2& point);
+
     Vertex2D getPoint(unsigned int id);
     Edge2D getEdge(unsigned int id);
     Face2D getFace(unsigned int id);
@@ -42,10 +44,14 @@ public:
 
     int getEdgeSignum(unsigned int id,unsigned int v1,unsigned int v2);
 
+    std::tuple<unsigned int,unsigned int,
+               unsigned int,unsigned int> getIntepolationIndices(glm::vec2 coords);
+
     unsigned int getNumPoints();
     unsigned int getNumEdges();
     unsigned int getNumFaces();
 private:
+    unsigned int voxelSize;
     unsigned int resolution;
 
     PointIterator pointsBegin;

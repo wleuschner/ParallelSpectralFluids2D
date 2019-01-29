@@ -14,6 +14,7 @@ FlowVisWidget::FlowVisWidget(QWidget *parent) : QOpenGLWidget(parent)
 {
     velocityNormalizationState = UNIT_NORMALIZATION;
     meshAlpha = 0.3;
+    particlesVisible = true;
     gridVisible = true;
     velocityVisible = true;
     vorticityVisible = false;
@@ -54,6 +55,12 @@ void FlowVisWidget::resizeGrid()
             Vertex2D v3 = solver->getMesh()->vertex[iv3];
             Vertex2D v4 = solver->getMesh()->vertex[iv4];
 
+            int s1=decMesh.getEdgeSignum(fit->e1,iv1,iv2);
+            int s2=decMesh.getEdgeSignum(fit->e2,iv2,iv3);
+            int s3=decMesh.getEdgeSignum(fit->e3,iv3,iv4);
+            int s4=decMesh.getEdgeSignum(fit->e4,iv4,iv1);
+
+
             glm::dvec2 e1 = v2.pos-v1.pos;
             glm::dvec2 e2 = v3.pos-v2.pos;
             glm::dvec2 e3 = v4.pos-v3.pos;
@@ -61,10 +68,22 @@ void FlowVisWidget::resizeGrid()
 
             glm::dvec2 center = v3.pos+0.5*(v1.pos-v3.pos);
 
-            gridEdges[ie1] = e1;
-            gridEdges[ie2] = e2;
-            gridEdges[ie3] = e3;
-            gridEdges[ie4] = e4;
+            if(s1>0)
+            {
+                gridEdges[ie1] = e1;
+            }
+            if(s2>0)
+            {
+                gridEdges[ie2] = e2;
+            }
+            if(s3>0)
+            {
+                gridEdges[ie3] = e3;
+            }
+            if(s4>0)
+            {
+                gridEdges[ie4] = e4;
+            }
 
             faceCenters[fit->id] = center;
         }
@@ -340,19 +359,24 @@ void FlowVisWidget::paintEvent(QPaintEvent *event)
 
                     unsigned int fidx = fit->id;
 
-                    glm::dvec2 e1 = gridEdges[ie1];
-                    glm::dvec2 e2 = gridEdges[ie2];
-                    glm::dvec2 e3 = gridEdges[ie3];
-                    glm::dvec2 e4 = gridEdges[ie4];
+                    Vertex2D v1 = solver->getMesh()->vertex[iv1];
+                    Vertex2D v2 = solver->getMesh()->vertex[iv2];
+                    Vertex2D v3 = solver->getMesh()->vertex[iv3];
+                    Vertex2D v4 = solver->getMesh()->vertex[iv4];
+
+                    glm::dvec2 e1 = v2.pos-v1.pos;
+                    glm::dvec2 e2 = v3.pos-v2.pos;
+                    glm::dvec2 e3 = v4.pos-v3.pos;
+                    glm::dvec2 e4 = v1.pos-v4.pos;
 
                     double s1=decMesh.getEdgeSignum(fit->e1,iv1,iv2);
                     double s2=decMesh.getEdgeSignum(fit->e2,iv2,iv3);
                     double s3=decMesh.getEdgeSignum(fit->e3,iv3,iv4);
                     double s4=decMesh.getEdgeSignum(fit->e4,iv4,iv1);
 
-                    glm::dvec2 vel = glm::rotate(0.5*(s1*velocityField(ie1)*glm::normalize(s1*e1)+s3*velocityField(ie3)*glm::normalize(s3*e3))+
-                                                0.5*(s2*velocityField(ie2)*glm::normalize(s2*e2)+s4*velocityField(ie4)*glm::normalize(s4*e4)),
-                                                glm::radians(90.0));
+                    glm::dvec2 vel = glm::rotate(0.5*(s1*velocityField(ie1)*glm::normalize(e1)+s3*velocityField(ie3)*glm::normalize(e3))+
+                                                 0.5*(s2*velocityField(ie2)*glm::normalize(e2)+s4*velocityField(ie4)*glm::normalize(e4)),
+                                                glm::radians(-90.0));
                     if(velocityNormalizationState==UNIT_NORMALIZATION)
                     {
                         vel = (mesh->getResolution()/2.0)*glm::normalize(vel);
@@ -407,6 +431,12 @@ void FlowVisWidget::paintEvent(QPaintEvent *event)
             }
         }
     }
+    const std::vector<glm::dvec2>& particles = solver->getParticles();
+    for(std::vector<glm::dvec2>::const_iterator it=particles.begin();it!=particles.end();it++)
+    {
+        painter.setPen(black);
+        painter.drawPoint(it->x,it->y);
+    }
     painter.end();
 
     QImage image(originalImage.width(),originalImage.height(),QImage::Format_RGBA8888);
@@ -442,5 +472,14 @@ void FlowVisWidget::keyPressEvent(QKeyEvent *event)
                 recording = true;
             }
         }
+    }
+}
+
+void FlowVisWidget::mouseMoveEvent(QMouseEvent* event)
+{
+    if(event->buttons()&Qt::LeftButton)
+    {
+        QPoint particlePos = event->pos();
+        solver->addParticle(glm::dvec2(particlePos.x(),particlePos.y()));
     }
 }

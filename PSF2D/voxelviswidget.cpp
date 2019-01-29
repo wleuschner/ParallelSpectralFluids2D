@@ -378,7 +378,7 @@ void VoxelVisWidget::paintEvent(QPaintEvent *event)
 
     for(FaceIterator fit=solver->getDECMesh().getFaceIteratorBegin();fit!=solver->getDECMesh().getFaceIteratorEnd();fit++)
     {
-        if(fit->inside)
+        if(fit->inside==GridState::INSIDE)
         {
             painter.setPen(black);
             unsigned int iv1 = fit->v1;

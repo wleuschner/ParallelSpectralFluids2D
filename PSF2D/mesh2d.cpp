@@ -49,42 +49,55 @@ unsigned int Mesh2D::getResolution()
 
 DECMesh2D Mesh2D::voxelize()
 {
-    DECMesh2D decMesh(width/resolution);
+    DECMesh2D decMesh(width/resolution+2,resolution);
     unsigned int iv1,iv2,iv3,iv4;
 
-    for(unsigned int y=0;y<height/resolution;y++)
+    for(unsigned int y=0;y<height/resolution+2;y++)
     {
-        for(unsigned int x=0;x<width/resolution;x++)
+        for(unsigned int x=0;x<width/resolution+2;x++)
         {
-            unsigned char* start = &pixels[y*width*resolution+x*resolution];
-            iv1 = y*(width/resolution+1)+x; //DOWN LEFT Vert
-            iv2 = y*(width/resolution+1)+x+1; //DOWN RIGHT Vert
-            iv3 = (y+1)*(width/resolution+1)+x; //UP LEFT vert
-            iv4 = (y+1)*(width/resolution+1)+x+1; //UP RIGHT vert*/
-
-            bool inside = checkVoxel(start);
-            Vertex2D v1,v2,v3,v4;
-            v1.pos.x = x*resolution;
-            v1.pos.y = y*resolution;
-            v2.pos.x = (x+1)*resolution;
-            v2.pos.y = y*resolution;
-            v3.pos.x = x*resolution;
-            v3.pos.y = (y+1)*resolution;
-            v4.pos.x = (x+1)*resolution;
-            v4.pos.y = (y+1)*resolution;
-
-            vertex[iv1] = v1;
-            vertex[iv2] = v2;
-            vertex[iv3] = v3;
-            vertex[iv4] = v4;
-
-            if(inside)
+            if(x==0||y==0||x==width/resolution+1||y==height/resolution+1)
             {
-                decMesh.addFace(Face2D(y*width/resolution+x,iv1,iv3,iv4,iv2,GridState::INSIDE));
+                iv1 = y*(width/resolution+1+2)+x; //DOWN LEFT Vert
+                iv2 = y*(width/resolution+1+2)+x+1; //DOWN RIGHT Vert
+                iv3 = (y+1)*(width/resolution+1+2)+x; //UP LEFT vert
+                iv4 = (y+1)*(width/resolution+1+2)+x+1; //UP RIGHT vert*/
+                decMesh.addFace(Face2D(y*(width/resolution+2)+x,iv1,iv3,iv4,iv2,GridState::OUTSIDE));
             }
             else
             {
-                decMesh.addFace(Face2D(y*width/resolution+x,iv1,iv3,iv4,iv2,GridState::OUTSIDE));
+                unsigned int ix=x-1;
+                unsigned int iy=y-1;
+                unsigned char* start = &pixels[iy*width*resolution+ix*resolution];
+                iv1 = y*(width/resolution+1+2)+x; //DOWN LEFT Vert
+                iv2 = y*(width/resolution+1+2)+x+1; //DOWN RIGHT Vert
+                iv3 = (y+1)*(width/resolution+1+2)+x; //UP LEFT vert
+                iv4 = (y+1)*(width/resolution+1+2)+x+1; //UP RIGHT vert*/
+
+                bool inside = checkVoxel(start);
+                Vertex2D v1,v2,v3,v4;
+                v1.pos.x = x*resolution;
+                v1.pos.y = y*resolution;
+                v2.pos.x = (x+1)*resolution;
+                v2.pos.y = y*resolution;
+                v3.pos.x = x*resolution;
+                v3.pos.y = (y+1)*resolution;
+                v4.pos.x = (x+1)*resolution;
+                v4.pos.y = (y+1)*resolution;
+
+                vertex[iv1] = v1;
+                vertex[iv2] = v2;
+                vertex[iv3] = v3;
+                vertex[iv4] = v4;
+
+                if(inside)
+                {
+                    decMesh.addFace(Face2D(y*(width/resolution+2)+x,iv1,iv3,iv4,iv2,GridState::INSIDE));
+                }
+                else
+                {
+                    decMesh.addFace(Face2D(y*(width/resolution+2)+x,iv1,iv3,iv4,iv2,GridState::OUTSIDE));
+                }
             }
         }
     }

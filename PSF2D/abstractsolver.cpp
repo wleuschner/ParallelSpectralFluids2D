@@ -15,6 +15,7 @@ void AbstractSolver::setMesh(Mesh2D* mesh)
     {
         delete this->mesh;
     }
+    resolution = mesh->getResolution();
     this->mesh = mesh;
     decMesh = mesh->voxelize();
     buildLaplace();
@@ -42,6 +43,7 @@ void AbstractSolver::setNumberEigenFunctions(unsigned int n)
 
 void AbstractSolver::setResolution(unsigned int res)
 {
+    this->resolution = res;
     mesh->setResolution(res);
     decMesh = mesh->voxelize();
     buildLaplace();
@@ -129,14 +131,22 @@ void AbstractSolver::buildEigenFunctions()
     }
 }
 
+const std::vector<glm::dvec2>& AbstractSolver::getParticles()
+{
+    return particles;
+}
+
 void AbstractSolver::clearParticles()
 {
     particles.clear();
 }
 
-void AbstractSolver::addParticle(glm::vec2 particle)
+void AbstractSolver::addParticle(glm::dvec2 particle)
 {
-    particles.push_back(particle);
+    if(decMesh.isPointInside(particle))
+    {
+        particles.push_back(particle);
+    }
 }
 
 unsigned int AbstractSolver::getNumParticles()
