@@ -23,7 +23,8 @@ void SpectralFluidsSolver2DCL::integrate()
     viennacl::vector<double> vel(nEigenFunctions);
     for(unsigned int k=0;k<nEigenFunctions;k++)
     {
-        //vel(k) = viennacl::linalg::inner_prod(vclBasisCoeff,viennacl::linalg::prod(vclAdvection[k],vclBasisCoeff));
+        viennacl::scalar<double> a = viennacl::linalg::inner_prod(vclBasisCoeff,viennacl::linalg::prod(vclAdvection[k],vclBasisCoeff));
+        vel(k) = a;
     }
     vclBasisCoeff += timeStep*vel;
 
